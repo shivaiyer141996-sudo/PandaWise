@@ -288,6 +288,20 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<ChildProgressView?> getChildProgress(String childId) async {
+    final String? token = _token;
+    if (token == null) return null;
+    try {
+      final ChildProgressView progress = await _api.getChildProgress(token, childId);
+      _error = null;
+      return progress;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     await _tokenStore.clear();
     _token = null;

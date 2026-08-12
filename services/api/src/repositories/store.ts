@@ -13,6 +13,8 @@ import type {
   Mission,
   MissionCompletion,
   Parent,
+  PlanEntitlements,
+  PlanId,
   RecommendationRule,
   SkillScore,
 } from "../domain/models.js";
@@ -47,6 +49,7 @@ export interface PandaWiseStore {
   listMissions(ageGroupId: AgeGroupId): Promise<Mission[]>;
   listRecommendationRules(ageGroupId: AgeGroupId): Promise<RecommendationRule[]>;
   getJourneyConfiguration(): Promise<JourneyConfiguration>;
+  getPlanEntitlements(planId: PlanId): Promise<PlanEntitlements>;
   listJourneys(childId: string): Promise<Journey[]>;
   getJourney(journeyId: string): Promise<Journey | undefined>;
   listJourneySchedules(journeyId: string): Promise<JourneySchedule[]>;

@@ -1,6 +1,6 @@
 {
   "name": "pandawise",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "PandaWise Release 1.0 monorepo",
   "workspaces": [

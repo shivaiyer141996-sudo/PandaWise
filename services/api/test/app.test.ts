@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.js";
 import type { Environment } from "../src/config/env.js";
+import type { Assessment, Child, PlanId, ScoreBand, SkillScore } from "../src/domain/models.js";
 import { MemoryStore } from "../src/repositories/memory-store.js";
 
 const testEnvironment: Environment = {
@@ -61,6 +62,75 @@ async function createChild(
     response,
     child: response.json().child as { id: string; ageGroupId: string },
   };
+}
+
+async function setPlan(store: MemoryStore, parentId: string, planId: PlanId): Promise<void> {
+  const parent = await store.getParentById(parentId);
+  if (!parent) throw new Error("Test parent was not found");
+  await store.createParent({ ...parent, subscriptionPlanId: planId });
+}
+
+async function seedAssessmentHistory(
+  store: MemoryStore,
+  child: Child,
+  growScores: number[],
+): Promise<void> {
+  let updatedChild = child;
+  for (const [index, growScore] of growScores.entries()) {
+    const sequence = index + 1;
+    const timestamp = `2026-0${sequence + 1}-01T09:00:00.000Z`;
+    const assessmentId = `ASM-SEED-${sequence}`;
+    const scoreBand: ScoreBand = growScore >= 75 ? "STRONG" : "AGE_APPROPRIATE";
+    const assessment: Assessment = {
+      id: assessmentId,
+      childId: child.id,
+      version: "1.0",
+      depth: "COMPREHENSIVE",
+      respondentMode: "PARENT",
+      startedAt: timestamp,
+      completedAt: timestamp,
+      overallGrowScore: growScore,
+      scoreBand,
+      questionCount: 50,
+      sequence,
+      status: "Completed",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      calculationVersion: "1.0",
+    };
+    const scores: SkillScore[] = Array.from({ length: 10 }, (_, skillIndex) => {
+      const skillScore = growScore + skillIndex;
+      const previousScore = sequence > 1 ? growScores[index - 1]! + skillIndex : undefined;
+      return {
+        id: `SSC-SEED-${sequence}-${skillIndex + 1}`,
+        assessmentId,
+        childId: child.id,
+        skillId: `SKL${String(skillIndex + 1).padStart(3, "0")}`,
+        weightedRawScore: skillScore,
+        normalizedScore: skillScore,
+        skillWeightPercent: 10,
+        weightedContribution: skillScore / 10,
+        scoreBand,
+        ...(previousScore === undefined
+          ? {}
+          : {
+              previousScore,
+              changeFromPrevious: skillScore - previousScore,
+            }),
+        calculatedAt: timestamp,
+        calculationVersion: "1.0",
+      };
+    });
+    updatedChild = {
+      ...updatedChild,
+      assessmentStatus: "Completed",
+      assessmentCount: sequence,
+      currentGrowScore: growScore,
+      currentBadgeLevel: "Explorer",
+      updatedAt: timestamp,
+    };
+    await store.saveAssessmentResult(assessment, scores, updatedChild);
+  }
 }
 
 async function completeDevelopmentCheck(
@@ -395,13 +465,13 @@ describe("PandaWise API", () => {
     });
     expect(created.json().today.reason).toContain("Chosen parent focus area");
 
-    const lockedSummary = await app.inject({
+    const unavailableSummary = await app.inject({
       method: "GET",
       url: `/v1/journeys/${created.json().journey.id as string}/weekly-summary/1`,
       headers: authorization,
     });
-    expect(lockedSummary.statusCode).toBe(409);
-    expect(lockedSummary.json().error.code).toBe("WEEKLY_SUMMARY_LOCKED");
+    expect(unavailableSummary.statusCode).toBe(403);
+    expect(unavailableSummary.json().error.code).toBe("WEEKLY_SUMMARY_REQUIRES_GROWTH");
 
     const other = await register(app, "other-journey@example.com");
     const privateJourney = await app.inject({
@@ -431,12 +501,14 @@ describe("PandaWise API", () => {
 
   it("records calendar-paced feedback, produces summaries and unlocks reassessment at 70%", async () => {
     let now = new Date("2026-08-01T09:00:00.000Z");
+    const store = new MemoryStore();
     const app = await buildApp({
       environment: testEnvironment,
-      store: new MemoryStore(),
+      store,
       now: () => now,
     });
     const { body } = await register(app, "journey@example.com");
+    await setPlan(store, body.parent.id, "PLN002");
     const { child } = await createChild(app, body.token);
     const authorization = { authorization: `Bearer ${body.token}` };
     await completeDevelopmentCheck(app, body.token, child.id);
@@ -539,6 +611,84 @@ describe("PandaWise API", () => {
       headers: authorization,
     });
     expect(reassessment.statusCode).toBe(201);
+    await app.close();
+  });
+
+  it("separates assessment improvement from mission activity and filters progress by plan", async () => {
+    const store = new MemoryStore();
+    const app = await buildApp({ environment: testEnvironment, store });
+    const { body } = await register(app, "progress@example.com");
+    const { child } = await createChild(app, body.token);
+    const storedChild = await store.getChild(body.parent.id, child.id);
+    if (!storedChild) throw new Error("Test child was not found");
+    await seedAssessmentHistory(store, storedChild, [50, 60, 75]);
+    const authorization = { authorization: `Bearer ${body.token}` };
+
+    const explorer = await app.inject({
+      method: "GET",
+      url: `/v1/children/${child.id}/progress`,
+      headers: authorization,
+    });
+    expect(explorer.statusCode).toBe(200);
+    expect(explorer.json()).toMatchObject({
+      entitlements: {
+        planId: "PLN001",
+        growthTrackerEnabled: false,
+        assessmentHistoryAccess: "Latest Only",
+        assessmentComparison: "None",
+      },
+      assessmentSnapshot: {
+        latestGrowScore: 75,
+        previousGrowScore: null,
+        changeFromPrevious: null,
+      },
+      activitySnapshot: {
+        status: "Not Started",
+        completionPercent: 0,
+        missionsCompleted: 0,
+      },
+      actions: { canStartJourney: true, nextAction: "START_JOURNEY" },
+    });
+    expect(explorer.json().skillTrends).toEqual([]);
+    expect(explorer.json().assessmentHistory).toHaveLength(1);
+
+    await setPlan(store, body.parent.id, "PLN002");
+    const growth = await app.inject({
+      method: "GET",
+      url: `/v1/children/${child.id}/progress`,
+      headers: authorization,
+    });
+    expect(growth.statusCode).toBe(200);
+    expect(growth.json().assessmentSnapshot).toMatchObject({
+      latestGrowScore: 75,
+      previousGrowScore: 60,
+      changeFromPrevious: 15,
+    });
+    expect(growth.json().assessmentHistory).toHaveLength(3);
+    expect(growth.json().skillTrends).toHaveLength(10);
+    expect(growth.json().skillTrends[0].points).toHaveLength(2);
+
+    await setPlan(store, body.parent.id, "PLN003");
+    const mastery = await app.inject({
+      method: "GET",
+      url: `/v1/children/${child.id}/progress`,
+      headers: authorization,
+    });
+    expect(mastery.statusCode).toBe(200);
+    expect(mastery.json().skillTrends[0].points).toHaveLength(3);
+
+    const newJourney = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/journeys`,
+      headers: authorization,
+      payload: { focusSkillIds: ["SKL001"] },
+    });
+    expect(newJourney.statusCode).toBe(201);
+    expect(newJourney.json().journey).toMatchObject({
+      sourceAssessmentId: "ASM-SEED-3",
+      status: "Active",
+      missionsPlanned: 21,
+    });
     await app.close();
   });
 

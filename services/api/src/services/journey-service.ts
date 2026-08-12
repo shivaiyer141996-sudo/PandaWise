@@ -402,11 +402,21 @@ export class JourneyService {
     week: number,
   ): Promise<Record<string, unknown>> {
     const { journey, child } = await this.ownedJourney(parentId, journeyId);
-    const [schedules, completions, bootstrap] = await Promise.all([
+    const parent = await this.store.getParentById(parentId);
+    if (!parent) throw new NotFoundError("Parent");
+    const [schedules, completions, bootstrap, entitlements] = await Promise.all([
       this.store.listJourneySchedules(journey.id),
       this.store.listMissionCompletionsByChild(child.id),
       this.store.getBootstrapData(),
+      this.store.getPlanEntitlements(parent.subscriptionPlanId),
     ]);
+    if (!entitlements.weeklySummaryEnabled) {
+      throw new DomainError(
+        "WEEKLY_SUMMARY_REQUIRES_GROWTH",
+        "Weekly reflections are available on Growth and Mastery plans",
+        403,
+      );
+    }
     const weekSchedules = schedules.filter((schedule) => schedule.week === week);
     if (weekSchedules.length === 0) throw new NotFoundError("Journey week");
     const ids = new Set(weekSchedules.map((schedule) => schedule.id));

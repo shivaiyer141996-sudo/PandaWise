@@ -14,6 +14,8 @@ import type {
   Mission,
   MissionCompletion,
   Parent,
+  PlanEntitlements,
+  PlanId,
   QuestionOption,
   RecommendationRule,
   ScoreBand,
@@ -235,6 +237,54 @@ const bootstrapData: BootstrapData = {
   timeCommitments: ["10_MIN", "15_MIN", "20_MIN", "30_MIN", "WEEKENDS_ONLY"],
 };
 
+const planEntitlements: Record<PlanId, PlanEntitlements> = {
+  PLN001: {
+    planId: "PLN001",
+    planName: "Explorer",
+    maxChildren: 1,
+    includedAssessmentsPerYear: 2,
+    questionCount: 30,
+    skillsVisible: 5,
+    missionsPerSkill: 1,
+    growthTrackerEnabled: false,
+    assessmentHistoryAccess: "Latest Only",
+    assessmentComparison: "None",
+    weeklySummaryEnabled: false,
+    monthlyReportEnabled: false,
+    advancedAnalyticsEnabled: false,
+  },
+  PLN002: {
+    planId: "PLN002",
+    planName: "Growth",
+    maxChildren: 3,
+    includedAssessmentsPerYear: 6,
+    questionCount: 50,
+    skillsVisible: 10,
+    missionsPerSkill: 2,
+    growthTrackerEnabled: true,
+    assessmentHistoryAccess: "Full",
+    assessmentComparison: "Latest vs Previous",
+    weeklySummaryEnabled: true,
+    monthlyReportEnabled: true,
+    advancedAnalyticsEnabled: false,
+  },
+  PLN003: {
+    planId: "PLN003",
+    planName: "Mastery",
+    maxChildren: null,
+    includedAssessmentsPerYear: 12,
+    questionCount: 50,
+    skillsVisible: 10,
+    missionsPerSkill: 3,
+    growthTrackerEnabled: true,
+    assessmentHistoryAccess: "Full",
+    assessmentComparison: "Full History",
+    weeklySummaryEnabled: true,
+    monthlyReportEnabled: true,
+    advancedAnalyticsEnabled: true,
+  },
+};
+
 export class MemoryStore implements PandaWiseStore {
   private readonly parents = new Map<string, Parent>();
   private readonly children = new Map<string, Child>();
@@ -381,6 +431,10 @@ export class MemoryStore implements PandaWiseStore {
 
   async getJourneyConfiguration(): Promise<JourneyConfiguration> {
     return { journeyDays: 21, reassessmentMinCompletionPercent: 70 };
+  }
+
+  async getPlanEntitlements(planId: PlanId): Promise<PlanEntitlements> {
+    return structuredClone(planEntitlements[planId]);
   }
 
   async listJourneys(childId: string): Promise<Journey[]> {

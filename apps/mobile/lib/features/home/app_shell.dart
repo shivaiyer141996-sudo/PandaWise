@@ -8,6 +8,7 @@ import 'package:pandawise_mobile/features/children/add_child_screen.dart';
 import 'package:pandawise_mobile/features/children/child_profile_screen.dart';
 import 'package:pandawise_mobile/features/discovery/discovery_flow.dart';
 import 'package:pandawise_mobile/features/journey/journey_flow.dart';
+import 'package:pandawise_mobile/features/progress/progress_flow.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.api, required this.session, super.key});
@@ -28,11 +29,7 @@ class _AppShellState extends State<AppShell> {
       _DashboardPage(api: widget.api, session: widget.session),
       _ChildrenPage(api: widget.api, session: widget.session),
       JourneyTab(session: widget.session),
-      const _PlannedPage(
-        title: 'Progress',
-        icon: Icons.insights_rounded,
-        message: 'GrowScore trends unlock as your family completes journeys.',
-      ),
+      ProgressTab(api: widget.api, session: widget.session),
       _ProfilePage(session: widget.session),
     ];
 
@@ -318,36 +315,8 @@ class _ProfilePage extends StatelessWidget {
             label: const Text('Logout'),
           ),
           const SizedBox(height: 16),
-          const Text('PandaWise 0.3.0', textAlign: TextAlign.center),
+          const Text('PandaWise 0.4.0', textAlign: TextAlign.center),
         ],
-      ),
-    );
-  }
-}
-
-class _PlannedPage extends StatelessWidget {
-  const _PlannedPage({required this.title, required this.icon, required this.message});
-
-  final String title;
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 64, color: PandaWiseColors.blue),
-              const SizedBox(height: 16),
-              Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
-            ],
-          ),
-        ),
       ),
     );
   }
