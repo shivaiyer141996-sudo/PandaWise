@@ -114,6 +114,15 @@ export class GoogleSheetsStore implements PandaWiseStore {
     return row ? this.parentFromRow(row) : undefined;
   }
 
+  async getParentByReferralCode(referralCode: string): Promise<Parent | undefined> {
+    const table = await this.readTable(workbookTabs.parents, ["Parent_ID", "Referral_Code"]);
+    const normalized = referralCode.trim().toUpperCase();
+    const row = table.rows.find(
+      (candidate) => cell(candidate, "Referral_Code").toUpperCase() === normalized,
+    );
+    return row ? this.parentFromRow(row) : undefined;
+  }
+
   async createParent(parent: Parent): Promise<void> {
     await this.appendObject(workbookTabs.parents, {
       Parent_ID: parent.id,
@@ -123,25 +132,48 @@ export class GoogleSheetsStore implements PandaWiseStore {
       Email: parent.email,
       Password_Hash: parent.passwordHash,
       Subscription_Plan_ID: parent.subscriptionPlanId,
-      Subscription_Start_Date: "",
-      Subscription_End_Date: "",
+      Subscription_Start_Date: parent.subscriptionStartDate ?? "",
+      Subscription_End_Date: parent.subscriptionEndDate ?? "",
       Preferred_Language_ID: parent.preferredLanguageId,
       Daily_Time_Commitment: parent.dailyTimeCommitment,
-      Push_Notification: false,
-      Email_Notification: false,
-      WhatsApp_Notification: false,
-      Weekly_Summary: false,
-      Mission_Reminder: false,
+      Push_Notification: parent.pushNotification,
+      Email_Notification: parent.emailNotification,
+      WhatsApp_Notification: parent.whatsAppNotification,
+      Weekly_Summary: parent.weeklySummary,
+      Mission_Reminder: parent.missionReminder,
       Marketing_Consent: parent.marketingConsent,
       Terms_Accepted_At: parent.termsAcceptedAt,
-      Referral_Code: "",
-      Referred_By: "",
-      Referral_Status: "Not Applicable",
+      Referral_Code: parent.referralCode,
+      Referred_By: parent.referredBy ?? "",
+      Referral_Status: parent.referralStatus,
       Last_Login_At: parent.lastLoginAt ?? "",
       Account_Status: parent.accountStatus,
       Created_At: parent.createdAt,
       Updated_At: parent.updatedAt,
       Created_By: "SELF_REGISTRATION",
+    });
+  }
+
+  async updateParent(parent: Parent): Promise<void> {
+    await this.updateRowFields(workbookTabs.parents, "Parent_ID", parent.id, {
+      Parent_Name: parent.name,
+      Parent_Type: parent.parentType,
+      Mobile_Number: parent.mobileNumber,
+      Subscription_Plan_ID: parent.subscriptionPlanId,
+      Subscription_Start_Date: parent.subscriptionStartDate ?? "",
+      Subscription_End_Date: parent.subscriptionEndDate ?? "",
+      Preferred_Language_ID: parent.preferredLanguageId,
+      Daily_Time_Commitment: parent.dailyTimeCommitment,
+      Push_Notification: parent.pushNotification,
+      Email_Notification: parent.emailNotification,
+      WhatsApp_Notification: parent.whatsAppNotification,
+      Weekly_Summary: parent.weeklySummary,
+      Mission_Reminder: parent.missionReminder,
+      Marketing_Consent: parent.marketingConsent,
+      Referral_Code: parent.referralCode,
+      Referred_By: parent.referredBy ?? "",
+      Referral_Status: parent.referralStatus,
+      Updated_At: parent.updatedAt,
     });
   }
 
@@ -554,49 +586,59 @@ export class GoogleSheetsStore implements PandaWiseStore {
   }
 
   async getPlanEntitlements(planId: PlanId): Promise<PlanEntitlements> {
+    const plan = (await this.listPlanEntitlements()).find((candidate) => candidate.planId === planId);
+    if (!plan) throw new Error(`Subscription plan ${planId} was not found`);
+    return plan;
+  }
+
+  async listPlanEntitlements(): Promise<PlanEntitlements[]> {
     const table = await this.readTable(workbookTabs.subscriptions, [
       "Plan_ID",
       "Plan_Name",
+      "Plan_Positioning",
+      "Monthly_Price_INR",
+      "Annual_Price_INR",
       "Max_Children",
       "Included_Assessments_Per_Year",
       "Question_Count",
       "Skills_Visible",
       "Missions_Per_Skill",
+      "Journey_Length_Days",
+      "Passion_Insights_Level",
+      "GrowScore_Enabled",
       "Growth_Tracker_Enabled",
+      "Growth_Timeline_Enabled",
       "Assessment_History_Access",
       "Assessment_Comparison",
       "Weekly_Summary_Enabled",
       "Monthly_Report_Enabled",
       "Advanced_Analytics_Enabled",
-      "Record_Status",
+      "Parent_Guidance_Level",
+      "Priority_Support",
+      "Report_Export",
+      "Multi_Language_Level",
+      "Display_Order",
+      "Recommended_Flag",
     ]);
-    const row = table.rows.find(
-      (candidate) =>
-        cell(candidate, "Plan_ID") === planId && cell(candidate, "Record_Status") === "Active",
+    return table.rows
+      .filter((row) => cell(row, "Plan_ID") !== "")
+      .map((row) => this.planEntitlementsFromRow(row))
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+  }
+
+  async updateChildPlanSnapshots(
+    childIds: string[],
+    planId: PlanId,
+    timestamp: string,
+  ): Promise<void> {
+    await Promise.all(
+      childIds.map((childId) =>
+        this.updateChildFields(childId, {
+          Current_Plan_ID: planId,
+          Updated_At: timestamp,
+        }),
+      ),
     );
-    if (!row) throw new Error(`Active subscription plan ${planId} was not found`);
-    const maxChildrenValue = cell(row, "Max_Children");
-    return {
-      planId,
-      planName: cell(row, "Plan_Name"),
-      maxChildren: maxChildrenValue === "Unlimited" ? null : parseNumber(maxChildrenValue),
-      includedAssessmentsPerYear: parseNumber(cell(row, "Included_Assessments_Per_Year")),
-      questionCount: parseNumber(cell(row, "Question_Count")),
-      skillsVisible: parseNumber(cell(row, "Skills_Visible")),
-      missionsPerSkill: parseNumber(cell(row, "Missions_Per_Skill")),
-      growthTrackerEnabled: parseBoolean(cell(row, "Growth_Tracker_Enabled")),
-      assessmentHistoryAccess: cell(
-        row,
-        "Assessment_History_Access",
-      ) as PlanEntitlements["assessmentHistoryAccess"],
-      assessmentComparison: cell(
-        row,
-        "Assessment_Comparison",
-      ) as PlanEntitlements["assessmentComparison"],
-      weeklySummaryEnabled: parseBoolean(cell(row, "Weekly_Summary_Enabled")),
-      monthlyReportEnabled: parseBoolean(cell(row, "Monthly_Report_Enabled")),
-      advancedAnalyticsEnabled: parseBoolean(cell(row, "Advanced_Analytics_Enabled")),
-    };
   }
 
   async listJourneys(childId: string): Promise<Journey[]> {
@@ -826,14 +868,66 @@ export class GoogleSheetsStore implements PandaWiseStore {
       subscriptionPlanId: (get("Subscription_Plan_ID") || "PLN001") as PlanId,
       preferredLanguageId: get("Preferred_Language_ID") || "LNG001",
       dailyTimeCommitment: (get("Daily_Time_Commitment") || "15_MIN") as TimeCommitment,
+      pushNotification: parseBoolean(get("Push_Notification")),
+      emailNotification: parseBoolean(get("Email_Notification")),
+      whatsAppNotification: parseBoolean(get("WhatsApp_Notification")),
+      weeklySummary: parseBoolean(get("Weekly_Summary")),
+      missionReminder: parseBoolean(get("Mission_Reminder")),
       marketingConsent: parseBoolean(get("Marketing_Consent")),
       termsAcceptedAt: get("Terms_Accepted_At"),
+      referralCode: get("Referral_Code") || `PW${get("Parent_ID").slice(-8)}`,
+      referralStatus: (get("Referral_Status") || "Not Applicable") as Parent["referralStatus"],
       accountStatus: (get("Account_Status") || "Active") as Parent["accountStatus"],
       createdAt: get("Created_At"),
       updatedAt: get("Updated_At"),
     };
+    if (get("Subscription_Start_Date")) {
+      parent.subscriptionStartDate = get("Subscription_Start_Date");
+    }
+    if (get("Subscription_End_Date")) {
+      parent.subscriptionEndDate = get("Subscription_End_Date");
+    }
+    if (get("Referred_By")) parent.referredBy = get("Referred_By");
     if (get("Last_Login_At")) parent.lastLoginAt = get("Last_Login_At");
     return parent;
+  }
+
+  private planEntitlementsFromRow(row: SheetRow): PlanEntitlements {
+    const maxChildrenValue = cell(row, "Max_Children");
+    return {
+      planId: cell(row, "Plan_ID") as PlanId,
+      planName: cell(row, "Plan_Name"),
+      positioning: cell(row, "Plan_Positioning"),
+      monthlyPriceInr: parseNumber(cell(row, "Monthly_Price_INR")),
+      annualPriceInr: parseNumber(cell(row, "Annual_Price_INR")),
+      maxChildren: maxChildrenValue === "Unlimited" ? null : parseNumber(maxChildrenValue),
+      includedAssessmentsPerYear: parseNumber(cell(row, "Included_Assessments_Per_Year")),
+      questionCount: parseNumber(cell(row, "Question_Count")),
+      skillsVisible: parseNumber(cell(row, "Skills_Visible")),
+      missionsPerSkill: parseNumber(cell(row, "Missions_Per_Skill")),
+      journeyLengthDays: parseNumber(cell(row, "Journey_Length_Days")),
+      passionInsightsLevel: cell(row, "Passion_Insights_Level"),
+      growScoreEnabled: parseBoolean(cell(row, "GrowScore_Enabled")),
+      growthTrackerEnabled: parseBoolean(cell(row, "Growth_Tracker_Enabled")),
+      growthTimelineEnabled: parseBoolean(cell(row, "Growth_Timeline_Enabled")),
+      assessmentHistoryAccess: cell(
+        row,
+        "Assessment_History_Access",
+      ) as PlanEntitlements["assessmentHistoryAccess"],
+      assessmentComparison: cell(
+        row,
+        "Assessment_Comparison",
+      ) as PlanEntitlements["assessmentComparison"],
+      weeklySummaryEnabled: parseBoolean(cell(row, "Weekly_Summary_Enabled")),
+      monthlyReportEnabled: parseBoolean(cell(row, "Monthly_Report_Enabled")),
+      advancedAnalyticsEnabled: parseBoolean(cell(row, "Advanced_Analytics_Enabled")),
+      parentGuidanceLevel: cell(row, "Parent_Guidance_Level"),
+      prioritySupport: cell(row, "Priority_Support"),
+      reportExport: cell(row, "Report_Export"),
+      multiLanguageLevel: cell(row, "Multi_Language_Level"),
+      displayOrder: parseNumber(cell(row, "Display_Order")),
+      recommended: parseBoolean(cell(row, "Recommended_Flag")),
+    };
   }
 
   private childFromRow(row: SheetRow): Child {

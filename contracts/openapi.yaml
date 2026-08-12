@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: PandaWise API
-  version: 0.4.0
-  description: Sprint 1–4 contract for onboarding, GrowScore, journeys, progress and reassessment.
+  version: 0.5.0
+  description: Sprint 1–5 contract for the parent journey, progress, commercial controls and settings.
 servers:
   - url: http://localhost:8080
 paths:
@@ -105,6 +105,124 @@ paths:
                 properties:
                   parent: { $ref: "#/components/schemas/Parent" }
         "401": { $ref: "#/components/responses/UnauthorizedError" }
+  /v1/plans:
+    get:
+      operationId: listSubscriptionPlans
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Live-master plan comparison and current manual V1 selection.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [currentPlanId, billingMode, paymentGatewayEnabled, plans]
+                properties:
+                  currentPlanId: { enum: [PLN001, PLN002, PLN003] }
+                  billingMode: { const: MANUAL_V1 }
+                  paymentGatewayEnabled: { const: false }
+                  plans:
+                    type: array
+                    items: { $ref: "#/components/schemas/PlanOption" }
+  /v1/me/subscription:
+    put:
+      operationId: changeSubscriptionPlan
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId: { enum: [PLN001, PLN002, PLN003] }
+      responses:
+        "200": { description: Parent and active-child plan snapshots updated. }
+        "409": { description: Child-count or annual-assessment usage blocks the change. }
+  /v1/me/profile:
+    put:
+      operationId: updateParentProfile
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, parentType, mobileNumber, preferredLanguageId, dailyTimeCommitment]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+                parentType: { enum: [Mother, Father, Guardian, Grandparent] }
+                mobileNumber: { type: string, minLength: 8, maxLength: 20 }
+                preferredLanguageId: { type: string }
+                dailyTimeCommitment: { $ref: "#/components/schemas/TimeCommitment" }
+      responses:
+        "200": { description: Editable parent profile fields saved. }
+        "400": { $ref: "#/components/responses/ValidationError" }
+  /v1/me/notification-preferences:
+    put:
+      operationId: updateNotificationPreferences
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pushNotification, emailNotification, whatsAppNotification, weeklySummary, missionReminder]
+              properties:
+                pushNotification: { type: boolean }
+                emailNotification: { type: boolean }
+                whatsAppNotification: { const: false }
+                weeklySummary: { type: boolean }
+                missionReminder: { type: boolean }
+      responses:
+        "200": { description: Independent channel preferences saved. }
+        "403": { description: Weekly summaries are not included in the current plan. }
+        "409": { description: WhatsApp is reserved for a future release. }
+  /v1/me/marketing-consent:
+    put:
+      operationId: updateMarketingConsent
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [marketingConsent]
+              properties:
+                marketingConsent: { type: boolean }
+      responses:
+        "200": { description: Optional marketing consent updated without changing terms acceptance. }
+  /v1/me/referral:
+    put:
+      operationId: applyReferralCode
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [referralCode]
+              properties:
+                referralCode: { type: string, minLength: 4, maxLength: 40 }
+      responses:
+        "200": { description: Valid external referral code applied with Pending status. }
+        "400": { description: Referral code is invalid or belongs to this parent. }
+        "409": { description: A referral code was already applied. }
+  /v1/notifications:
+    get:
+      operationId: getNotificationCentre
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Private actionable notices derived from the current family journey.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationCentre" }
   /v1/children:
     get:
       operationId: listChildren
@@ -483,6 +601,15 @@ components:
         - subscriptionPlanId
         - preferredLanguageId
         - dailyTimeCommitment
+        - pushNotification
+        - emailNotification
+        - whatsAppNotification
+        - weeklySummary
+        - missionReminder
+        - marketingConsent
+        - termsAcceptedAt
+        - referralCode
+        - referralStatus
       properties:
         id: { type: string }
         name: { type: string }
@@ -494,6 +621,16 @@ components:
         preferredLanguageId: { type: string }
         dailyTimeCommitment:
           $ref: "#/components/schemas/TimeCommitment"
+        pushNotification: { type: boolean }
+        emailNotification: { type: boolean }
+        whatsAppNotification: { const: false }
+        weeklySummary: { type: boolean }
+        missionReminder: { type: boolean }
+        marketingConsent: { type: boolean }
+        termsAcceptedAt: { type: string, format: date-time }
+        referralCode: { type: string }
+        referredBy: { type: string }
+        referralStatus: { enum: [Not Applicable, Pending, Qualified, Rewarded, Rejected] }
     Child:
       type: object
       required:
@@ -876,6 +1013,84 @@ components:
         scoreBand: { type: [string, "null"] }
         changeFromPrevious: { type: [number, "null"] }
         journey: { type: [object, "null"], additionalProperties: true }
+    PlanOption:
+      type: object
+      required:
+        - planId
+        - planName
+        - positioning
+        - monthlyPriceInr
+        - annualPriceInr
+        - maxChildren
+        - includedAssessmentsPerYear
+        - questionCount
+        - skillsVisible
+        - missionsPerSkill
+        - journeyLengthDays
+        - passionInsightsLevel
+        - growScoreEnabled
+        - growthTrackerEnabled
+        - growthTimelineEnabled
+        - assessmentHistoryAccess
+        - assessmentComparison
+        - weeklySummaryEnabled
+        - monthlyReportEnabled
+        - advancedAnalyticsEnabled
+        - displayOrder
+        - recommended
+      properties:
+        planId: { enum: [PLN001, PLN002, PLN003] }
+        planName: { type: string }
+        positioning: { type: string }
+        monthlyPriceInr: { type: integer, minimum: 0 }
+        annualPriceInr: { type: integer, minimum: 0 }
+        maxChildren: { type: [integer, "null"], minimum: 1 }
+        includedAssessmentsPerYear: { type: integer, minimum: 1 }
+        questionCount: { enum: [30, 50] }
+        skillsVisible: { type: integer, minimum: 1, maximum: 10 }
+        missionsPerSkill: { type: integer, minimum: 1 }
+        journeyLengthDays: { type: integer, minimum: 1 }
+        passionInsightsLevel: { type: string }
+        growScoreEnabled: { type: boolean }
+        growthTrackerEnabled: { type: boolean }
+        growthTimelineEnabled: { type: boolean }
+        assessmentHistoryAccess: { enum: [Latest Only, Full] }
+        assessmentComparison: { enum: [None, Latest vs Previous, Full History] }
+        weeklySummaryEnabled: { type: boolean }
+        monthlyReportEnabled: { type: boolean }
+        advancedAnalyticsEnabled: { type: boolean }
+        parentGuidanceLevel: { type: string }
+        prioritySupport: { type: string }
+        reportExport: { type: string }
+        multiLanguageLevel: { type: string }
+        displayOrder: { type: integer, minimum: 1 }
+        recommended: { type: boolean }
+    NotificationCentre:
+      type: object
+      required: [items, preferences]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, type, title, message, action, createdAt]
+            properties:
+              id: { type: string }
+              type: { enum: [GET_STARTED, DEVELOPMENT_CHECK, MISSION_REMINDER, REASSESSMENT] }
+              title: { type: string }
+              message: { type: string }
+              childId: { type: string }
+              action: { enum: [ADD_CHILD, START_DISCOVERY, OPEN_JOURNEY, START_REASSESSMENT] }
+              createdAt: { type: string, format: date-time }
+        preferences:
+          type: object
+          required: [pushNotification, emailNotification, whatsAppNotification, weeklySummary, missionReminder]
+          properties:
+            pushNotification: { type: boolean }
+            emailNotification: { type: boolean }
+            whatsAppNotification: { const: false }
+            weeklySummary: { type: boolean }
+            missionReminder: { type: boolean }
     ErrorResponse:
       type: object
       required: [error]

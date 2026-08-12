@@ -22,7 +22,9 @@ import type {
 export interface PandaWiseStore {
   getParentByEmail(email: string): Promise<Parent | undefined>;
   getParentById(parentId: string): Promise<Parent | undefined>;
+  getParentByReferralCode(referralCode: string): Promise<Parent | undefined>;
   createParent(parent: Parent): Promise<void>;
+  updateParent(parent: Parent): Promise<void>;
   updateParentLastLogin(parentId: string, timestamp: string): Promise<void>;
   listChildren(parentId: string): Promise<Child[]>;
   getChild(parentId: string, childId: string): Promise<Child | undefined>;
@@ -50,6 +52,12 @@ export interface PandaWiseStore {
   listRecommendationRules(ageGroupId: AgeGroupId): Promise<RecommendationRule[]>;
   getJourneyConfiguration(): Promise<JourneyConfiguration>;
   getPlanEntitlements(planId: PlanId): Promise<PlanEntitlements>;
+  listPlanEntitlements(): Promise<PlanEntitlements[]>;
+  updateChildPlanSnapshots(
+    childIds: string[],
+    planId: PlanId,
+    timestamp: string,
+  ): Promise<void>;
   listJourneys(childId: string): Promise<Journey[]>;
   getJourney(journeyId: string): Promise<Journey | undefined>;
   listJourneySchedules(journeyId: string): Promise<JourneySchedule[]>;

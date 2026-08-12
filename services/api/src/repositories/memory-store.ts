@@ -241,47 +241,86 @@ const planEntitlements: Record<PlanId, PlanEntitlements> = {
   PLN001: {
     planId: "PLN001",
     planName: "Explorer",
+    positioning: "Understand your child's current development",
+    monthlyPriceInr: 0,
+    annualPriceInr: 0,
     maxChildren: 1,
-    includedAssessmentsPerYear: 2,
+    includedAssessmentsPerYear: 1,
     questionCount: 30,
     skillsVisible: 5,
     missionsPerSkill: 1,
+    journeyLengthDays: 7,
+    passionInsightsLevel: "Basic",
+    growScoreEnabled: true,
     growthTrackerEnabled: false,
+    growthTimelineEnabled: false,
     assessmentHistoryAccess: "Latest Only",
     assessmentComparison: "None",
     weeklySummaryEnabled: false,
     monthlyReportEnabled: false,
     advancedAnalyticsEnabled: false,
+    parentGuidanceLevel: "Basic",
+    prioritySupport: "FALSE",
+    reportExport: "FALSE",
+    multiLanguageLevel: "English",
+    displayOrder: 1,
+    recommended: false,
   },
   PLN002: {
     planId: "PLN002",
     planName: "Growth",
+    positioning: "Build structured habits and measurable improvement",
+    monthlyPriceInr: 199,
+    annualPriceInr: 1999,
     maxChildren: 3,
     includedAssessmentsPerYear: 6,
     questionCount: 50,
     skillsVisible: 10,
     missionsPerSkill: 2,
+    journeyLengthDays: 21,
+    passionInsightsLevel: "Detailed",
+    growScoreEnabled: true,
     growthTrackerEnabled: true,
+    growthTimelineEnabled: true,
     assessmentHistoryAccess: "Full",
     assessmentComparison: "Latest vs Previous",
     weeklySummaryEnabled: true,
     monthlyReportEnabled: true,
     advancedAnalyticsEnabled: false,
+    parentGuidanceLevel: "Personalized",
+    prioritySupport: "Email",
+    reportExport: "PDF",
+    multiLanguageLevel: "English + Regional",
+    displayOrder: 2,
+    recommended: true,
   },
   PLN003: {
     planId: "PLN003",
     planName: "Mastery",
+    positioning: "Long-term guided development with deeper insight",
+    monthlyPriceInr: 399,
+    annualPriceInr: 3999,
     maxChildren: null,
     includedAssessmentsPerYear: 12,
     questionCount: 50,
     skillsVisible: 10,
     missionsPerSkill: 3,
+    journeyLengthDays: 21,
+    passionInsightsLevel: "Detailed + Trend",
+    growScoreEnabled: true,
     growthTrackerEnabled: true,
+    growthTimelineEnabled: true,
     assessmentHistoryAccess: "Full",
     assessmentComparison: "Full History",
     weeklySummaryEnabled: true,
     monthlyReportEnabled: true,
     advancedAnalyticsEnabled: true,
+    parentGuidanceLevel: "Personalized + Weekly Insight",
+    prioritySupport: "Priority",
+    reportExport: "Premium PDF",
+    multiLanguageLevel: "All Supported",
+    displayOrder: 3,
+    recommended: false,
   },
 };
 
@@ -308,8 +347,19 @@ export class MemoryStore implements PandaWiseStore {
     return this.parents.get(parentId);
   }
 
+  async getParentByReferralCode(referralCode: string): Promise<Parent | undefined> {
+    const normalized = referralCode.trim().toUpperCase();
+    return [...this.parents.values()].find(
+      (parent) => parent.referralCode.toUpperCase() === normalized,
+    );
+  }
+
   async createParent(parent: Parent): Promise<void> {
     this.parents.set(parent.id, parent);
+  }
+
+  async updateParent(parent: Parent): Promise<void> {
+    this.parents.set(parent.id, structuredClone(parent));
   }
 
   async updateParentLastLogin(parentId: string, timestamp: string): Promise<void> {
@@ -435,6 +485,29 @@ export class MemoryStore implements PandaWiseStore {
 
   async getPlanEntitlements(planId: PlanId): Promise<PlanEntitlements> {
     return structuredClone(planEntitlements[planId]);
+  }
+
+  async listPlanEntitlements(): Promise<PlanEntitlements[]> {
+    return Object.values(planEntitlements)
+      .sort((left, right) => left.displayOrder - right.displayOrder)
+      .map((plan) => structuredClone(plan));
+  }
+
+  async updateChildPlanSnapshots(
+    childIds: string[],
+    planId: PlanId,
+    timestamp: string,
+  ): Promise<void> {
+    for (const childId of childIds) {
+      const child = this.children.get(childId);
+      if (child) {
+        this.children.set(childId, {
+          ...child,
+          currentPlanId: planId,
+          updatedAt: timestamp,
+        });
+      }
+    }
   }
 
   async listJourneys(childId: string): Promise<Journey[]> {

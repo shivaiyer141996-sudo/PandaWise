@@ -22,10 +22,13 @@ mobile app to the spreadsheet so a later database migration stays feasible.
 - Validates all inputs and derives server-owned fields.
 - Reads/writes Google Sheets through a repository interface.
 - Selects versioned assessment content and computes weighted GrowScore server-side.
-- Generates explainable, plan-aware 21-day journeys from mission and recommendation
-  masters; only the current daily mission is exposed as actionable.
+- Generates explainable, plan-aware starter/full journeys from mission,
+  recommendation and subscription masters; only the current daily mission is
+  exposed as actionable.
 - Separates assessment change from mission activity and filters history, comparison
   and skill trends against Subscription Master entitlements before serialization.
+- Exposes manual V1 plan selection without a payment gateway, validates safe
+  downgrades, and persists parent communication, consent and referral preferences.
 - Returns stable JSON contracts to the app.
 
 ### Google Sheets
@@ -79,6 +82,8 @@ notification module.
   one completion event per schedule and atomically advances journey/child snapshots.
 - Progress is derived from immutable assessments, skill scores, journeys and mission
   completions; Child Master snapshots are not treated as historical truth.
+- Plan changes update the parent record and every active child plan snapshot while
+  retaining historical assessment and journey records under their original IDs.
 - API errors have machine-readable codes and never expose credentials or stack data.
 - Google Sheets timeouts, quota responses and malformed rows are translated into
   controlled service errors.

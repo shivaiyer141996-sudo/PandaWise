@@ -302,6 +302,113 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<PlanCatalogue?> getPlans() async {
+    final String? token = _token;
+    if (token == null) return null;
+    try {
+      final PlanCatalogue plans = await _api.getPlans(token);
+      _error = null;
+      return plans;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> changePlan(String planId) async {
+    final String? token = _token;
+    if (token == null) return false;
+    return _updateParent(() => _api.changePlan(token, planId), refreshChildren: true);
+  }
+
+  Future<bool> updateParentProfile({
+    required String name,
+    required String parentType,
+    required String mobileNumber,
+    required String preferredLanguageId,
+    required String dailyTimeCommitment,
+  }) async {
+    final String? token = _token;
+    if (token == null) return false;
+    return _updateParent(
+      () => _api.updateParentProfile(
+        token,
+        name: name,
+        parentType: parentType,
+        mobileNumber: mobileNumber,
+        preferredLanguageId: preferredLanguageId,
+        dailyTimeCommitment: dailyTimeCommitment,
+      ),
+    );
+  }
+
+  Future<bool> updateNotificationPreferences({
+    required bool pushNotification,
+    required bool emailNotification,
+    required bool weeklySummary,
+    required bool missionReminder,
+  }) async {
+    final String? token = _token;
+    if (token == null) return false;
+    return _updateParent(
+      () => _api.updateNotificationPreferences(
+        token,
+        pushNotification: pushNotification,
+        emailNotification: emailNotification,
+        whatsAppNotification: false,
+        weeklySummary: weeklySummary,
+        missionReminder: missionReminder,
+      ),
+    );
+  }
+
+  Future<bool> updateMarketingConsent(bool marketingConsent) async {
+    final String? token = _token;
+    if (token == null) return false;
+    return _updateParent(() => _api.updateMarketingConsent(token, marketingConsent));
+  }
+
+  Future<bool> applyReferral(String referralCode) async {
+    final String? token = _token;
+    if (token == null) return false;
+    return _updateParent(() => _api.applyReferral(token, referralCode));
+  }
+
+  Future<NotificationCentre?> getNotifications() async {
+    final String? token = _token;
+    if (token == null) return null;
+    try {
+      final NotificationCentre notifications = await _api.getNotifications(token);
+      _error = null;
+      return notifications;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> _updateParent(
+    Future<ParentProfile> Function() action, {
+    bool refreshChildren = false,
+  }) async {
+    _setBusy(true);
+    try {
+      _parent = await action();
+      if (refreshChildren && _token != null) {
+        _children = await _api.getChildren(_token!);
+      }
+      _error = null;
+      return true;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return false;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
   Future<void> logout() async {
     await _tokenStore.clear();
     _token = null;

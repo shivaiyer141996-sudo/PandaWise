@@ -51,9 +51,31 @@ class _FakeApi implements PandaWiseApi {
     id: 'PAR001',
     name: 'Shiva Iyer',
     email: 'parent@example.com',
+    parentType: 'Father',
+    mobileNumber: '9876543210',
     subscriptionPlanId: 'PLN001',
+    preferredLanguageId: 'LNG001',
     dailyTimeCommitment: '15_MIN',
+    pushNotification: false,
+    emailNotification: false,
+    whatsAppNotification: false,
+    weeklySummary: false,
+    missionReminder: false,
+    marketingConsent: false,
+    termsAcceptedAt: '2026-08-12T09:00:00.000Z',
+    referralCode: 'PWTEST001',
+    referralStatus: 'Not Applicable',
   );
+
+  @override
+  Future<ParentProfile> applyReferral(String token, String referralCode) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ParentProfile> changePlan(String token, String planId) {
+    throw UnimplementedError();
+  }
 
   @override
   Future<ChildProfile> createChild(String token, CreateChildRequest request) {
@@ -62,6 +84,16 @@ class _FakeApi implements PandaWiseApi {
 
   @override
   Future<ChildProgressView> getChildProgress(String token, String childId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<NotificationCentre> getNotifications(String token) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<PlanCatalogue> getPlans(String token) {
     throw UnimplementedError();
   }
 
@@ -148,6 +180,35 @@ class _FakeApi implements PandaWiseApi {
 
   @override
   Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<ParentProfile> updateMarketingConsent(String token, bool marketingConsent) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ParentProfile> updateNotificationPreferences(
+    String token, {
+    required bool pushNotification,
+    required bool emailNotification,
+    required bool whatsAppNotification,
+    required bool weeklySummary,
+    required bool missionReminder,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ParentProfile> updateParentProfile(
+    String token, {
+    required String name,
+    required String parentType,
+    required String mobileNumber,
+    required String preferredLanguageId,
+    required String dailyTimeCommitment,
+  }) {
+    throw UnimplementedError();
+  }
 
   @override
   Future<void> saveAssessmentResponse(

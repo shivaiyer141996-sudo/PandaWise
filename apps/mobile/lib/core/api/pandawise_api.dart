@@ -60,6 +60,27 @@ abstract interface class PandaWiseApi {
     int week,
   );
   Future<ChildProgressView> getChildProgress(String token, String childId);
+  Future<PlanCatalogue> getPlans(String token);
+  Future<ParentProfile> changePlan(String token, String planId);
+  Future<ParentProfile> updateParentProfile(
+    String token, {
+    required String name,
+    required String parentType,
+    required String mobileNumber,
+    required String preferredLanguageId,
+    required String dailyTimeCommitment,
+  });
+  Future<ParentProfile> updateNotificationPreferences(
+    String token, {
+    required bool pushNotification,
+    required bool emailNotification,
+    required bool whatsAppNotification,
+    required bool weeklySummary,
+    required bool missionReminder,
+  });
+  Future<ParentProfile> updateMarketingConsent(String token, bool marketingConsent);
+  Future<ParentProfile> applyReferral(String token, String referralCode);
+  Future<NotificationCentre> getNotifications(String token);
 }
 
 class HttpPandaWiseApi implements PandaWiseApi {
@@ -312,6 +333,106 @@ class HttpPandaWiseApi implements PandaWiseApi {
       token: token,
     );
     return ChildProgressView.fromJson(json);
+  }
+
+  @override
+  Future<PlanCatalogue> getPlans(String token) async {
+    final Map<String, dynamic> json = await _send('GET', '/v1/plans', token: token);
+    return PlanCatalogue.fromJson(json);
+  }
+
+  @override
+  Future<ParentProfile> changePlan(String token, String planId) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/me/subscription',
+      token: token,
+      body: <String, dynamic>{'planId': planId},
+    );
+    return ParentProfile.fromJson(json['parent'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ParentProfile> updateParentProfile(
+    String token, {
+    required String name,
+    required String parentType,
+    required String mobileNumber,
+    required String preferredLanguageId,
+    required String dailyTimeCommitment,
+  }) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/me/profile',
+      token: token,
+      body: <String, dynamic>{
+        'name': name,
+        'parentType': parentType,
+        'mobileNumber': mobileNumber,
+        'preferredLanguageId': preferredLanguageId,
+        'dailyTimeCommitment': dailyTimeCommitment,
+      },
+    );
+    return ParentProfile.fromJson(json['parent'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ParentProfile> updateNotificationPreferences(
+    String token, {
+    required bool pushNotification,
+    required bool emailNotification,
+    required bool whatsAppNotification,
+    required bool weeklySummary,
+    required bool missionReminder,
+  }) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/me/notification-preferences',
+      token: token,
+      body: <String, dynamic>{
+        'pushNotification': pushNotification,
+        'emailNotification': emailNotification,
+        'whatsAppNotification': whatsAppNotification,
+        'weeklySummary': weeklySummary,
+        'missionReminder': missionReminder,
+      },
+    );
+    return ParentProfile.fromJson(json['parent'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ParentProfile> updateMarketingConsent(
+    String token,
+    bool marketingConsent,
+  ) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/me/marketing-consent',
+      token: token,
+      body: <String, dynamic>{'marketingConsent': marketingConsent},
+    );
+    return ParentProfile.fromJson(json['parent'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ParentProfile> applyReferral(String token, String referralCode) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/me/referral',
+      token: token,
+      body: <String, dynamic>{'referralCode': referralCode},
+    );
+    return ParentProfile.fromJson(json['parent'] as Map<String, dynamic>);
+  }
+
+  @override
+  Future<NotificationCentre> getNotifications(String token) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/notifications',
+      token: token,
+    );
+    return NotificationCentre.fromJson(json);
   }
 
   AuthResult _authResult(Map<String, dynamic> json) {

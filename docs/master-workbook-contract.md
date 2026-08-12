@@ -112,7 +112,8 @@ this document records integration responsibilities and does not duplicate its ro
 
 ## Entitlement headers used in Sprint 4
 
-Subscription plans are resolved by `Plan_ID` and `Record_Status=Active` using:
+Subscription plans are resolved by `Plan_ID`. The live tab has no `Record_Status`
+column, so the adapter must not require or fabricate one. Enforcement uses:
 `Plan_Name`, `Max_Children`, `Included_Assessments_Per_Year`, `Question_Count`,
 `Skills_Visible`, `Missions_Per_Skill`, `Growth_Tracker_Enabled`,
 `Assessment_History_Access`, `Assessment_Comparison`, `Weekly_Summary_Enabled`,
@@ -120,3 +121,19 @@ Subscription plans are resolved by `Plan_ID` and `Record_Status=Active` using:
 
 History and comparison limits are applied in the API response. The Flutter app must
 not receive hidden assessment or skill-history rows and then attempt to conceal them.
+
+## Parent and commercial fields used in Sprint 5
+
+- Plan comparison reads all 26 live headers, including positioning, monthly/annual
+  price, journey length, passion insight level, GrowScore, growth timeline, parent
+  guidance, support, export, language, display-order and recommended fields from
+  `18_Subscription_Master`.
+- Profile and settings updates write only the matching `01_Parent_Master` row by
+  `Parent_ID`; they do not append a second parent record.
+- `Push_Notification`, `Email_Notification`, `Weekly_Summary` and
+  `Mission_Reminder` remain independent. `WhatsApp_Notification` stays false in
+  Release 1.0.
+- `Marketing_Consent` is mutable independently of immutable
+  `Terms_Accepted_At`.
+- `Referral_Code` is generated at registration; a valid external code sets
+  `Referred_By` and moves `Referral_Status` to `Pending`.

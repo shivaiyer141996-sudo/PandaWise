@@ -92,17 +92,19 @@ export class JourneyService {
       );
     }
 
-    const [missions, rules, configuration, passions, bootstrap, priorCompletions] =
+    const [missions, rules, configuration, entitlements, passions, bootstrap, priorCompletions] =
       await Promise.all([
         this.store.listMissions(child.ageGroupId),
         this.store.listRecommendationRules(child.ageGroupId),
         this.store.getJourneyConfiguration(),
+        this.store.getPlanEntitlements(parent.subscriptionPlanId),
         this.store.listChildPassions(child.id),
         this.store.getBootstrapData(),
         this.store.listMissionCompletionsByChild(child.id),
       ]);
-    const eligibleMissions = missions.filter((mission) =>
-      this.planAllows(parent.subscriptionPlanId, mission),
+    const eligibleMissions = this.limitMissionsPerSkill(
+      missions.filter((mission) => this.planAllows(parent.subscriptionPlanId, mission)),
+      entitlements.missionsPerSkill,
     );
     if (eligibleMissions.length === 0) {
       throw new DomainError(
@@ -149,7 +151,8 @@ export class JourneyService {
     const journeyId = createId("JRN");
     const schedules: JourneySchedule[] = [];
 
-    for (let day = 1; day <= configuration.journeyDays; day += 1) {
+    const journeyDays = entitlements.journeyLengthDays || configuration.journeyDays;
+    for (let day = 1; day <= journeyDays; day += 1) {
       const skillId = skillRotation[(day - 1) % skillRotation.length];
       if (!skillId) {
         throw new DomainError("MISSION_CONTENT_INVALID", "Mission skill coverage is incomplete", 503);
@@ -194,10 +197,10 @@ export class JourneyService {
       sourceAssessmentId: assessment.id,
       planId: parent.subscriptionPlanId,
       startDate,
-      plannedEndDate: addDays(startDate, configuration.journeyDays - 1),
+      plannedEndDate: addDays(startDate, journeyDays - 1),
       status: "Active",
       currentDay: 1,
-      missionsPlanned: configuration.journeyDays,
+      missionsPlanned: journeyDays,
       missionsCompleted: 0,
       completionPercent: 0,
       reassessmentUnlocked: false,
@@ -572,6 +575,18 @@ export class JourneyService {
     if (mission.planEligibility === "ALL") return true;
     if (mission.planEligibility === "GROWTH_AND_MASTERY") return planId !== "PLN001";
     return planId === "PLN003";
+  }
+
+  private limitMissionsPerSkill(missions: Mission[], limit: number): Mission[] {
+    const counts = new Map<string, number>();
+    return [...missions]
+      .sort((left, right) => left.displayOrder - right.displayOrder)
+      .filter((mission) => {
+        const count = counts.get(mission.skillId) ?? 0;
+        if (count >= limit) return false;
+        counts.set(mission.skillId, count + 1);
+        return true;
+      });
   }
 
   private reasonView(prioritySource: string): string[] {

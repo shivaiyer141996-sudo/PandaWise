@@ -67,14 +67,14 @@ Screens: SCR-015 through SCR-018.
 Deliverables:
 
 - Explainable mission selection.
-- Personalized 21-day schedule.
+- Personalized plan-length schedule (7-day Explorer starter; 21-day Growth/Mastery).
 - One visible daily mission.
 - Yes/Partially/No, enjoyment, difficulty and notes feedback.
 - Weekly summary, streak and journey completion.
 
 Exit criteria:
 
-- Every eligible child receives a 21-day plan.
+- Every eligible child receives the journey length configured for the family's plan.
 - Completed/recent missions and time commitment affect selection.
 - Reassessment remains locked until journey and 70% completion rules pass.
 

@@ -113,8 +113,12 @@ export class AssessmentService {
     }
 
     const entitlements = await this.store.getPlanEntitlements(parent.subscriptionPlanId);
+    const familyChildren = await this.store.listChildren(parentId);
+    const familyAssessments = (
+      await Promise.all(familyChildren.map((familyChild) => this.store.listAssessments(familyChild.id)))
+    ).flat();
     const currentYear = new Date().getUTCFullYear();
-    const attemptsThisYear = assessments.filter(
+    const attemptsThisYear = familyAssessments.filter(
       (assessment) => new Date(assessment.startedAt).getUTCFullYear() === currentYear,
     ).length;
     if (attemptsThisYear >= entitlements.includedAssessmentsPerYear) {

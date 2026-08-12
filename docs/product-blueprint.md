@@ -88,7 +88,8 @@ individual/group and creative/analytical preferences.
 |---|---|---|---|
 | Price | Free | ₹1,999/year | ₹3,999/year |
 | Children | 1 | Up to 3 | Unlimited |
-| Assessments/year | 2 | 6 | 12 |
+| Assessments/year | 1 | 6 | 12 |
+| Journey length | 7 days | 21 days | 21 days |
 | Skill visibility | Top 5 | All | All |
 | Missions per skill | 1 | 2 | 3 |
 | Progress tracker | No | Yes | Yes |
