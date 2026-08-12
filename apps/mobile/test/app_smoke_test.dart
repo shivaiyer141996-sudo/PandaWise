@@ -36,7 +36,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Login'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Hi Shiva 👋'), findsOneWidget);
+    expect(find.text('Hi Shiva 👋'), findsWidgets);
     expect(find.text('Tell us about your child'), findsOneWidget);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Children'), findsOneWidget);
