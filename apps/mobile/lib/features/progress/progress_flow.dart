@@ -202,9 +202,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 ),
                 const SizedBox(height: 24),
                 if (!progress.entitlements.growthTrackerEnabled) ...<Widget>[
-                  PandaWiseCard(
-                    color: const Color(0xFFFFFBEB),
-                    child: const Row(
+                  const PandaWiseCard(
+                    color: Color(0xFFFFFBEB),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Icon(Icons.lock_outline_rounded, color: Color(0xFFD97706)),
