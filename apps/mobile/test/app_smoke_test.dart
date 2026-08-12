@@ -61,6 +61,26 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
+  Future<GrowScoreReport> completeAssessment(String token, String assessmentId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AssessmentDetail> getAssessment(String token, String assessmentId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GrowScoreReport> getAssessmentReport(String token, String assessmentId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<BootstrapData> getBootstrapData() async {
     return const BootstrapData(
       ageGroups: <MasterOption>[],
@@ -75,6 +95,9 @@ class _FakeApi implements PandaWiseApi {
   Future<List<ChildProfile>> getChildren(String token) async => <ChildProfile>[];
 
   @override
+  Future<List<String>> getSelectedPassions(String token, String childId) async => <String>[];
+
+  @override
   Future<ParentProfile> getMe(String token) async => _parent;
 
   @override
@@ -84,6 +107,26 @@ class _FakeApi implements PandaWiseApi {
 
   @override
   Future<void> requestPasswordReset(String email) async {}
+
+  @override
+  Future<void> saveAssessmentResponse(
+    String token,
+    String assessmentId,
+    String questionId,
+    String optionId,
+  ) async {}
+
+  @override
+  Future<List<String>> selectPassions(
+    String token,
+    String childId,
+    List<String> passionIds,
+  ) async => passionIds;
+
+  @override
+  Future<AssessmentDetail> startAssessment(String token, String childId) {
+    throw UnimplementedError();
+  }
 
   @override
   Future<AuthResult> register({

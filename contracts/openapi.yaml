@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: PandaWise API
-  version: 0.1.0
-  description: Sprint 1 contract for parent authentication, configuration and child profiles.
+  version: 0.2.0
+  description: Sprint 1–2 contract for parent/child onboarding, discovery and GrowScore.
 servers:
   - url: http://localhost:8080
 paths:
@@ -163,6 +163,155 @@ paths:
                 properties:
                   child: { $ref: "#/components/schemas/Child" }
         "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/children/{childId}/passions:
+    parameters:
+      - in: path
+        name: childId
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getChildPassions
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Current non-scored Passion Discovery selections.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [passionIds]
+                properties:
+                  passionIds:
+                    type: array
+                    items: { type: string }
+    put:
+      operationId: selectChildPassions
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [passionIds]
+              properties:
+                passionIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  uniqueItems: true
+                  items: { type: string }
+      responses:
+        "200": { description: Passion selections saved. }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/children/{childId}/assessments:
+    post:
+      operationId: startOrResumeAssessment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema: { type: string }
+      responses:
+        "201":
+          description: A versioned Development Check was started or resumed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentDetail" }
+        "403": { description: Annual plan entitlement reached. }
+        "409": { description: Passion Discovery is incomplete. }
+  /v1/children/{childId}/growscore/latest:
+    get:
+      operationId: getLatestGrowScoreReport
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Latest completed GrowScore report for the child.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrowScoreReport" }
+        "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/assessments/{assessmentId}:
+    get:
+      operationId: getAssessment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: assessmentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Development Check questions, selections and progress.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssessmentDetail" }
+        "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/assessments/{assessmentId}/responses/{questionId}:
+    put:
+      operationId: autoSaveAssessmentResponse
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: assessmentId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: questionId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [optionId]
+              properties:
+                optionId: { type: string }
+                responseText: { type: string, maxLength: 500 }
+      responses:
+        "200": { description: Response validated, scored server-side and saved. }
+        "409": { description: Assessment is already complete. }
+  /v1/assessments/{assessmentId}/complete:
+    post:
+      operationId: completeAssessment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: assessmentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: GrowScore calculated using scoring version 1.0.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrowScoreReport" }
+        "409": { description: Required questions remain unanswered. }
+  /v1/assessments/{assessmentId}/report:
+    get:
+      operationId: getGrowScoreReport
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: assessmentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Plan-aware, strengths-first GrowScore report.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrowScoreReport" }
+        "409": { description: Assessment is not complete. }
 components:
   securitySchemes:
     bearerAuth:
@@ -311,6 +460,98 @@ components:
         additionalProperties: true
     TimeCommitment:
       enum: [10_MIN, 15_MIN, 20_MIN, 30_MIN, WEEKENDS_ONLY]
+    AssessmentDetail:
+      type: object
+      required: [assessment, child, questions, progress]
+      properties:
+        assessment:
+          type: object
+          required: [id, childId, version, depth, respondentMode, status, questionCount]
+          properties:
+            id: { type: string }
+            childId: { type: string }
+            version: { const: "1.0" }
+            depth: { enum: [CORE, COMPREHENSIVE] }
+            respondentMode: { enum: [PARENT, HYBRID] }
+            status: { enum: [In Progress, Completed] }
+            questionCount: { enum: [30, 50] }
+        child:
+          type: object
+          additionalProperties: true
+        questions:
+          type: array
+          items:
+            type: object
+            required: [id, skillId, text, respondentType, options]
+            properties:
+              id: { type: string }
+              skillId: { type: string }
+              text: { type: string }
+              respondentType: { enum: [PARENT, CHILD] }
+              selectedOptionId: { type: [string, "null"] }
+              options:
+                type: array
+                items:
+                  type: object
+                  required: [id, text]
+                  properties:
+                    id: { type: string }
+                    text: { type: string }
+        progress:
+          type: object
+          required: [answered, total, percent]
+          properties:
+            answered: { type: integer, minimum: 0 }
+            total: { enum: [30, 50] }
+            percent: { type: integer, minimum: 0, maximum: 100 }
+    GrowScoreSkill:
+      type: object
+      required: [skillId, name, score, band, bandLabel, message]
+      properties:
+        skillId: { type: string }
+        name: { type: string }
+        score: { type: number, minimum: 0, maximum: 100 }
+        band:
+          enum: [PRIORITY_GROWTH_AREA, DEVELOPING, AGE_APPROPRIATE, STRONG, EXCEPTIONAL]
+        bandLabel: { type: string }
+        message: { type: string }
+    GrowScoreReport:
+      type: object
+      required:
+        - assessment
+        - child
+        - growScore
+        - scoreBand
+        - scoreBandLabel
+        - skills
+        - strengths
+        - recommendedFocusAreas
+        - entitlements
+      properties:
+        assessment: { type: object, additionalProperties: true }
+        child: { type: object, additionalProperties: true }
+        growScore: { type: number, minimum: 0, maximum: 100 }
+        scoreBand:
+          enum: [PRIORITY_GROWTH_AREA, DEVELOPING, AGE_APPROPRIATE, STRONG, EXCEPTIONAL]
+        scoreBandLabel: { type: string }
+        skills:
+          type: array
+          items: { $ref: "#/components/schemas/GrowScoreSkill" }
+        strengths:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/GrowScoreSkill" }
+        recommendedFocusAreas:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/GrowScoreSkill" }
+        entitlements:
+          type: object
+          required: [visibleSkillCount, lockedSkillCount, planId]
+          properties:
+            visibleSkillCount: { type: integer }
+            lockedSkillCount: { type: integer }
+            planId: { enum: [PLN001, PLN002, PLN003] }
     ErrorResponse:
       type: object
       required: [error]

@@ -86,14 +86,32 @@ class ChildProfile {
 }
 
 class MasterOption {
-  const MasterOption({required this.id, required this.name});
+  const MasterOption({
+    required this.id,
+    required this.name,
+    this.category,
+    this.ageGroupEligibility,
+    this.colour,
+    this.weight,
+  });
 
   factory MasterOption.fromJson(Map<String, dynamic> json) {
-    return MasterOption(id: json['id'] as String, name: json['name'] as String);
+    return MasterOption(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      category: json['category'] as String?,
+      ageGroupEligibility: json['ageGroupEligibility'] as String?,
+      colour: json['colour'] as String?,
+      weight: (json['weight'] as num?)?.toDouble(),
+    );
   }
 
   final String id;
   final String name;
+  final String? category;
+  final String? ageGroupEligibility;
+  final String? colour;
+  final double? weight;
 }
 
 class BootstrapData {
@@ -103,6 +121,8 @@ class BootstrapData {
     required this.schools,
     required this.grades,
     required this.timeCommitments,
+    this.skills = const <MasterOption>[],
+    this.passions = const <MasterOption>[],
   });
 
   factory BootstrapData.fromJson(Map<String, dynamic> json) {
@@ -117,6 +137,8 @@ class BootstrapData {
       languages: options('languages'),
       schools: options('schools'),
       grades: options('grades'),
+      skills: options('skills'),
+      passions: options('passions'),
       timeCommitments: (json['timeCommitments'] as List<dynamic>? ?? <dynamic>[])
           .cast<String>(),
     );
@@ -126,6 +148,8 @@ class BootstrapData {
   final List<MasterOption> languages;
   final List<MasterOption> schools;
   final List<MasterOption> grades;
+  final List<MasterOption> skills;
+  final List<MasterOption> passions;
   final List<String> timeCommitments;
 }
 
@@ -175,4 +199,157 @@ class CreateChildRequest {
       'parentTimeCommitment': parentTimeCommitment,
     };
   }
+}
+
+class AssessmentOption {
+  const AssessmentOption({required this.id, required this.text});
+
+  factory AssessmentOption.fromJson(Map<String, dynamic> json) {
+    return AssessmentOption(id: json['id'] as String, text: json['text'] as String);
+  }
+
+  final String id;
+  final String text;
+}
+
+class AssessmentQuestion {
+  const AssessmentQuestion({
+    required this.id,
+    required this.skillId,
+    required this.text,
+    required this.respondentType,
+    required this.displayOrder,
+    required this.options,
+    this.selectedOptionId,
+  });
+
+  factory AssessmentQuestion.fromJson(Map<String, dynamic> json) {
+    return AssessmentQuestion(
+      id: json['id'] as String,
+      skillId: json['skillId'] as String,
+      text: json['text'] as String,
+      respondentType: json['respondentType'] as String,
+      displayOrder: json['displayOrder'] as int,
+      options: (json['options'] as List<dynamic>)
+          .map((dynamic value) => AssessmentOption.fromJson(value as Map<String, dynamic>))
+          .toList(growable: false),
+      selectedOptionId: json['selectedOptionId'] as String?,
+    );
+  }
+
+  final String id;
+  final String skillId;
+  final String text;
+  final String respondentType;
+  final int displayOrder;
+  final List<AssessmentOption> options;
+  final String? selectedOptionId;
+}
+
+class AssessmentDetail {
+  const AssessmentDetail({
+    required this.id,
+    required this.childId,
+    required this.depth,
+    required this.respondentMode,
+    required this.status,
+    required this.questionCount,
+    required this.questions,
+    required this.answeredCount,
+  });
+
+  factory AssessmentDetail.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> assessment = json['assessment'] as Map<String, dynamic>;
+    final Map<String, dynamic> progress = json['progress'] as Map<String, dynamic>;
+    return AssessmentDetail(
+      id: assessment['id'] as String,
+      childId: assessment['childId'] as String,
+      depth: assessment['depth'] as String,
+      respondentMode: assessment['respondentMode'] as String,
+      status: assessment['status'] as String,
+      questionCount: assessment['questionCount'] as int,
+      questions: (json['questions'] as List<dynamic>)
+          .map((dynamic value) => AssessmentQuestion.fromJson(value as Map<String, dynamic>))
+          .toList(growable: false),
+      answeredCount: progress['answered'] as int,
+    );
+  }
+
+  final String id;
+  final String childId;
+  final String depth;
+  final String respondentMode;
+  final String status;
+  final int questionCount;
+  final List<AssessmentQuestion> questions;
+  final int answeredCount;
+}
+
+class GrowScoreSkill {
+  const GrowScoreSkill({
+    required this.skillId,
+    required this.name,
+    required this.score,
+    required this.bandLabel,
+    required this.message,
+    required this.colour,
+  });
+
+  factory GrowScoreSkill.fromJson(Map<String, dynamic> json) {
+    return GrowScoreSkill(
+      skillId: json['skillId'] as String,
+      name: json['name'] as String,
+      score: (json['score'] as num).toDouble(),
+      bandLabel: json['bandLabel'] as String,
+      message: json['message'] as String,
+      colour: json['colour'] as String,
+    );
+  }
+
+  final String skillId;
+  final String name;
+  final double score;
+  final String bandLabel;
+  final String message;
+  final String colour;
+}
+
+class GrowScoreReport {
+  const GrowScoreReport({
+    required this.assessmentId,
+    required this.growScore,
+    required this.scoreBandLabel,
+    required this.skills,
+    required this.strengths,
+    required this.recommendedFocusAreas,
+    required this.lockedSkillCount,
+  });
+
+  factory GrowScoreReport.fromJson(Map<String, dynamic> json) {
+    List<GrowScoreSkill> skills(String key) {
+      return (json[key] as List<dynamic>)
+          .map((dynamic value) => GrowScoreSkill.fromJson(value as Map<String, dynamic>))
+          .toList(growable: false);
+    }
+
+    final Map<String, dynamic> assessment = json['assessment'] as Map<String, dynamic>;
+    final Map<String, dynamic> entitlements = json['entitlements'] as Map<String, dynamic>;
+    return GrowScoreReport(
+      assessmentId: assessment['id'] as String,
+      growScore: (json['growScore'] as num).toDouble(),
+      scoreBandLabel: json['scoreBandLabel'] as String,
+      skills: skills('skills'),
+      strengths: skills('strengths'),
+      recommendedFocusAreas: skills('recommendedFocusAreas'),
+      lockedSkillCount: entitlements['lockedSkillCount'] as int,
+    );
+  }
+
+  final String assessmentId;
+  final double growScore;
+  final String scoreBandLabel;
+  final List<GrowScoreSkill> skills;
+  final List<GrowScoreSkill> strengths;
+  final List<GrowScoreSkill> recommendedFocusAreas;
+  final int lockedSkillCount;
 }

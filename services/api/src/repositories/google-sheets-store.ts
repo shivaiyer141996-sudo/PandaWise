@@ -3,13 +3,23 @@ import type { Environment } from "../config/env.js";
 import { workbookTabs } from "../config/workbook.js";
 import type {
   AgeGroupId,
+  Assessment,
+  AssessmentDepth,
+  AssessmentQuestion,
+  AssessmentResponse,
   BootstrapData,
   Child,
+  ChildPassion,
   Gender,
   MasterOption,
   Parent,
   ParentType,
   PlanId,
+  QuestionOption,
+  RespondentMode,
+  RespondentType,
+  ScoreBand,
+  SkillScore,
   TimeCommitment,
 } from "../domain/models.js";
 import type { PandaWiseStore } from "./store.js";
@@ -221,6 +231,7 @@ export class GoogleSheetsStore implements PandaWiseStore {
       }),
       this.readOptions(workbookTabs.passions, "Passion_ID", "Passion_Name", {
         category: "Category",
+        ageGroupEligibility: "Age_Group_Eligibility",
         indoorOutdoor: "Indoor_Outdoor",
         participationMode: "Participation_Mode",
         thinkingStyle: "Thinking_Style",
@@ -236,6 +247,234 @@ export class GoogleSheetsStore implements PandaWiseStore {
       passions,
       timeCommitments: ["10_MIN", "15_MIN", "20_MIN", "30_MIN", "WEEKENDS_ONLY"],
     };
+  }
+
+  async listChildPassions(childId: string): Promise<ChildPassion[]> {
+    const table = await this.readTable(workbookTabs.childPassions, [
+      "Child_Passion_ID",
+      "Child_ID",
+      "Passion_ID",
+      "Record_Status",
+    ]);
+    const latest = new Map<string, SheetRow>();
+    for (const row of table.rows.filter((candidate) => cell(candidate, "Child_ID") === childId)) {
+      latest.set(cell(row, "Passion_ID"), row);
+    }
+    return [...latest.values()]
+      .filter(
+        (row) =>
+          cell(row, "Record_Status") === "Active" &&
+          (cell(row, "Passion_Status") || "Selected") === "Selected",
+      )
+      .map((row) => this.childPassionFromRow(row))
+      .sort((left, right) => left.preferenceRank - right.preferenceRank);
+  }
+
+  async saveChildPassionEvents(events: ChildPassion[]): Promise<void> {
+    await this.appendObjects(
+      workbookTabs.childPassions,
+      events.map((event) => ({
+        Child_Passion_ID: event.id,
+        Child_ID: event.childId,
+        Passion_ID: event.passionId,
+        Preference_Rank: event.preferenceRank,
+        Passion_Status: event.status,
+        Source: event.source,
+        Captured_At: event.capturedAt,
+        Assessment_ID: event.assessmentId ?? "",
+        Record_Status: event.recordStatus,
+        Created_At: event.createdAt,
+        Updated_At: event.updatedAt,
+      })),
+    );
+  }
+
+  async listAssessmentQuestions(
+    ageGroupId: AgeGroupId,
+    version: string,
+    depth: AssessmentDepth,
+  ): Promise<AssessmentQuestion[]> {
+    const [questionTable, optionTable] = await Promise.all([
+      this.readTable(workbookTabs.questions, [
+        "Question_ID",
+        "Assessment_Type",
+        "Age_Group_ID",
+        "Respondent_Type",
+        "Skill_ID",
+        "Question_Text",
+        "Question_Type_ID",
+        "Question_Set_Tier",
+        "Assessment_Version",
+        "Record_Status",
+      ]),
+      this.readTable(workbookTabs.questionOptions, [
+        "Option_ID",
+        "Question_Type_ID",
+        "Display_Text",
+        "Numeric_Score",
+        "Reverse_Score",
+        "Record_Status",
+      ]),
+    ]);
+    const optionsByType = new Map<string, QuestionOption[]>();
+    for (const row of optionTable.rows.filter(
+      (candidate) => cell(candidate, "Record_Status") === "Active",
+    )) {
+      const option = this.questionOptionFromRow(row);
+      const values = optionsByType.get(option.questionTypeId) ?? [];
+      values.push(option);
+      optionsByType.set(option.questionTypeId, values);
+    }
+    for (const values of optionsByType.values()) {
+      values.sort((left, right) => left.displayOrder - right.displayOrder);
+    }
+
+    return questionTable.rows
+      .filter(
+        (row) =>
+          cell(row, "Assessment_Type") === "SKILL" &&
+          cell(row, "Age_Group_ID") === ageGroupId &&
+          cell(row, "Assessment_Version") === version &&
+          cell(row, "Record_Status") === "Active" &&
+          (depth === "COMPREHENSIVE" || cell(row, "Question_Set_Tier") === "CORE"),
+      )
+      .map((row) => {
+        const questionTypeId = cell(row, "Question_Type_ID");
+        return {
+          id: cell(row, "Question_ID"),
+          assessmentType: "SKILL" as const,
+          ageGroupId: cell(row, "Age_Group_ID") as AgeGroupId,
+          respondentType: cell(row, "Respondent_Type") as RespondentType,
+          skillId: cell(row, "Skill_ID"),
+          text: cell(row, "Question_Text"),
+          questionTypeId,
+          tier: cell(row, "Question_Set_Tier") as AssessmentDepth,
+          weight: parseNumber(cell(row, "Weight"), 1),
+          reverseScored: parseBoolean(cell(row, "Reverse_Scored_Flag")),
+          displayOrder: parseNumber(cell(row, "Display_Order")),
+          version: cell(row, "Assessment_Version"),
+          required: parseBoolean(cell(row, "Required_Flag")),
+          options: structuredClone(optionsByType.get(questionTypeId) ?? []),
+        };
+      })
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+  }
+
+  async listAssessments(childId: string): Promise<Assessment[]> {
+    const table = await this.readTable(workbookTabs.assessments, [
+      "Assessment_ID",
+      "Child_ID",
+      "Assessment_Status",
+    ]);
+    return table.rows
+      .filter((row) => cell(row, "Child_ID") === childId)
+      .map((row) => this.assessmentFromRow(row))
+      .sort((left, right) => left.sequence - right.sequence);
+  }
+
+  async getAssessment(assessmentId: string): Promise<Assessment | undefined> {
+    const table = await this.readTable(workbookTabs.assessments, ["Assessment_ID"]);
+    const row = table.rows.find(
+      (candidate) => cell(candidate, "Assessment_ID") === assessmentId,
+    );
+    return row ? this.assessmentFromRow(row) : undefined;
+  }
+
+  async createAssessment(assessment: Assessment): Promise<void> {
+    await this.appendObject(workbookTabs.assessments, this.assessmentRecord(assessment));
+    await this.updateChildFields(assessment.childId, {
+      Assessment_Status: "In Progress",
+      Updated_At: assessment.updatedAt,
+    });
+  }
+
+  async listAssessmentResponses(assessmentId: string): Promise<AssessmentResponse[]> {
+    const table = await this.readTable(workbookTabs.responses, [
+      "Response_ID",
+      "Assessment_ID",
+      "Question_ID",
+    ]);
+    const latest = new Map<string, SheetRow>();
+    for (const row of table.rows.filter(
+      (candidate) => cell(candidate, "Assessment_ID") === assessmentId,
+    )) {
+      latest.set(cell(row, "Question_ID"), row);
+    }
+    return [...latest.values()].map((row) => this.responseFromRow(row));
+  }
+
+  async saveAssessmentResponse(response: AssessmentResponse): Promise<void> {
+    await this.appendObject(workbookTabs.responses, {
+      Response_ID: response.id,
+      Assessment_ID: response.assessmentId,
+      Child_ID: response.childId,
+      Question_ID: response.questionId,
+      Respondent_Type: response.respondentType,
+      Option_ID: response.optionId,
+      Raw_Score: response.rawScore,
+      Adjusted_Score: response.adjustedScore,
+      Response_Text: response.responseText ?? "",
+      Answered_At: response.answeredAt,
+      Record_Status: response.recordStatus,
+      Created_At: response.createdAt,
+      Updated_At: response.updatedAt,
+    });
+  }
+
+  async listSkillScores(assessmentId: string): Promise<SkillScore[]> {
+    const table = await this.readTable(workbookTabs.skillScores, [
+      "Skill_Score_ID",
+      "Assessment_ID",
+      "Skill_ID",
+    ]);
+    return table.rows
+      .filter((row) => cell(row, "Assessment_ID") === assessmentId)
+      .map((row) => this.skillScoreFromRow(row));
+  }
+
+  async saveAssessmentResult(
+    assessment: Assessment,
+    skillScores: SkillScore[],
+    child: Child,
+  ): Promise<void> {
+    const existingSkillIds = new Set(
+      (await this.listSkillScores(assessment.id)).map((score) => score.skillId),
+    );
+    const missingScores = skillScores.filter((score) => !existingSkillIds.has(score.skillId));
+    await this.appendObjects(
+      workbookTabs.skillScores,
+      missingScores.map((score) => ({
+        Skill_Score_ID: score.id,
+        Assessment_ID: score.assessmentId,
+        Child_ID: score.childId,
+        Skill_ID: score.skillId,
+        Weighted_Raw_Score: score.weightedRawScore,
+        Normalized_Score: score.normalizedScore,
+        Skill_Weight_Percent: score.skillWeightPercent,
+        Weighted_Contribution: score.weightedContribution,
+        Score_Band: score.scoreBand,
+        Previous_Score: score.previousScore ?? "",
+        Change_From_Previous: score.changeFromPrevious ?? "",
+        Calculated_At: score.calculatedAt,
+        Calculation_Version: score.calculationVersion,
+      })),
+    );
+
+    await this.updateRowFields(workbookTabs.assessments, "Assessment_ID", assessment.id, {
+      Completed_At: assessment.completedAt ?? "",
+      Overall_GrowScore: assessment.overallGrowScore ?? "",
+      Score_Band: assessment.scoreBand ?? "",
+      Assessment_Status: assessment.status,
+      Updated_At: assessment.updatedAt,
+      Calculation_Version: assessment.calculationVersion,
+    });
+    await this.updateChildFields(child.id, {
+      Assessment_Status: child.assessmentStatus,
+      Assessment_Count: child.assessmentCount,
+      Current_GrowScore: child.currentGrowScore ?? "",
+      Updated_At: child.updatedAt,
+      Updated_By: child.parentId,
+    });
   }
 
   private async readTable(tab: string, requiredHeaders: string[]): Promise<SheetTable> {
@@ -264,14 +503,52 @@ export class GoogleSheetsStore implements PandaWiseStore {
   }
 
   private async appendObject(tab: string, record: Record<string, unknown>): Promise<void> {
-    const table = await this.readTable(tab, Object.keys(record));
-    const values = table.headers.map((header) => toSheetValue(record[header]));
+    await this.appendObjects(tab, [record]);
+  }
+
+  private async appendObjects(
+    tab: string,
+    records: Record<string, unknown>[],
+  ): Promise<void> {
+    if (records.length === 0) return;
+    const table = await this.readTable(tab, Object.keys(records[0] ?? {}));
+    const values = records.map((record) =>
+      table.headers.map((header) => toSheetValue(record[header])),
+    );
     await this.sheets.spreadsheets.values.append({
       spreadsheetId: this.spreadsheetId,
       range: `'${tab}'!A:ZZ`,
       valueInputOption: "RAW",
       insertDataOption: "INSERT_ROWS",
-      requestBody: { values: [values] },
+      requestBody: { values },
+    });
+  }
+
+  private async updateChildFields(
+    childId: string,
+    fields: Record<string, unknown>,
+  ): Promise<void> {
+    await this.updateRowFields(workbookTabs.children, "Child_ID", childId, fields);
+  }
+
+  private async updateRowFields(
+    tab: string,
+    idHeader: string,
+    id: string,
+    fields: Record<string, unknown>,
+  ): Promise<void> {
+    const table = await this.readTable(tab, [idHeader, ...Object.keys(fields)]);
+    const row = table.rows.find((candidate) => cell(candidate, idHeader) === id);
+    if (!row) return;
+    await this.sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: this.spreadsheetId,
+      requestBody: {
+        valueInputOption: "RAW",
+        data: Object.entries(fields).map(([header, value]) => ({
+          range: `'${tab}'!${columnName(table.headers.indexOf(header))}${row.__rowNumber}`,
+          values: [[toSheetValue(value)]],
+        })),
+      },
     });
   }
 
@@ -354,5 +631,118 @@ export class GoogleSheetsStore implements PandaWiseStore {
       child.currentGrowScore = parseNumber(get("Current_GrowScore"));
     }
     return child;
+  }
+
+  private childPassionFromRow(row: SheetRow): ChildPassion {
+    const value: ChildPassion = {
+      id: cell(row, "Child_Passion_ID"),
+      childId: cell(row, "Child_ID"),
+      passionId: cell(row, "Passion_ID"),
+      preferenceRank: parseNumber(cell(row, "Preference_Rank")),
+      status: (cell(row, "Passion_Status") || "Selected") as ChildPassion["status"],
+      source: "Parent Selection",
+      capturedAt: cell(row, "Captured_At"),
+      recordStatus: (cell(row, "Record_Status") || "Active") as ChildPassion["recordStatus"],
+      createdAt: cell(row, "Created_At"),
+      updatedAt: cell(row, "Updated_At"),
+    };
+    if (cell(row, "Assessment_ID")) value.assessmentId = cell(row, "Assessment_ID");
+    return value;
+  }
+
+  private questionOptionFromRow(row: SheetRow): QuestionOption {
+    return {
+      id: cell(row, "Option_ID"),
+      questionTypeId: cell(row, "Question_Type_ID"),
+      displayText: cell(row, "Display_Text"),
+      numericScore: parseNumber(cell(row, "Numeric_Score")),
+      reverseScore: parseNumber(cell(row, "Reverse_Score")),
+      displayOrder: parseNumber(cell(row, "Display_Order")),
+    };
+  }
+
+  private assessmentFromRow(row: SheetRow): Assessment {
+    const assessment: Assessment = {
+      id: cell(row, "Assessment_ID"),
+      childId: cell(row, "Child_ID"),
+      version: cell(row, "Assessment_Version"),
+      depth: cell(row, "Assessment_Depth") as AssessmentDepth,
+      respondentMode: cell(row, "Respondent_Mode") as RespondentMode,
+      startedAt: cell(row, "Started_At"),
+      questionCount: parseNumber(cell(row, "Question_Count")),
+      sequence: parseNumber(cell(row, "Assessment_Sequence")),
+      status: cell(row, "Assessment_Status") as Assessment["status"],
+      createdAt: cell(row, "Created_At"),
+      updatedAt: cell(row, "Updated_At"),
+      calculationVersion: cell(row, "Calculation_Version") || "1.0",
+    };
+    if (cell(row, "Completed_At")) assessment.completedAt = cell(row, "Completed_At");
+    if (cell(row, "Overall_GrowScore")) {
+      assessment.overallGrowScore = parseNumber(cell(row, "Overall_GrowScore"));
+    }
+    if (cell(row, "Score_Band")) assessment.scoreBand = cell(row, "Score_Band") as ScoreBand;
+    if (cell(row, "Journey_ID")) assessment.journeyId = cell(row, "Journey_ID");
+    return assessment;
+  }
+
+  private assessmentRecord(assessment: Assessment): Record<string, unknown> {
+    return {
+      Assessment_ID: assessment.id,
+      Child_ID: assessment.childId,
+      Assessment_Version: assessment.version,
+      Assessment_Depth: assessment.depth,
+      Respondent_Mode: assessment.respondentMode,
+      Started_At: assessment.startedAt,
+      Completed_At: assessment.completedAt ?? "",
+      Overall_GrowScore: assessment.overallGrowScore ?? "",
+      Score_Band: assessment.scoreBand ?? "",
+      Journey_ID: assessment.journeyId ?? "",
+      Question_Count: assessment.questionCount,
+      Assessment_Sequence: assessment.sequence,
+      Assessment_Status: assessment.status,
+      Created_At: assessment.createdAt,
+      Updated_At: assessment.updatedAt,
+      Calculation_Version: assessment.calculationVersion,
+    };
+  }
+
+  private responseFromRow(row: SheetRow): AssessmentResponse {
+    const response: AssessmentResponse = {
+      id: cell(row, "Response_ID"),
+      assessmentId: cell(row, "Assessment_ID"),
+      childId: cell(row, "Child_ID"),
+      questionId: cell(row, "Question_ID"),
+      respondentType: cell(row, "Respondent_Type") as RespondentType,
+      optionId: cell(row, "Option_ID"),
+      rawScore: parseNumber(cell(row, "Raw_Score")),
+      adjustedScore: parseNumber(cell(row, "Adjusted_Score")),
+      answeredAt: cell(row, "Answered_At"),
+      recordStatus: "Active",
+      createdAt: cell(row, "Created_At"),
+      updatedAt: cell(row, "Updated_At"),
+    };
+    if (cell(row, "Response_Text")) response.responseText = cell(row, "Response_Text");
+    return response;
+  }
+
+  private skillScoreFromRow(row: SheetRow): SkillScore {
+    const score: SkillScore = {
+      id: cell(row, "Skill_Score_ID"),
+      assessmentId: cell(row, "Assessment_ID"),
+      childId: cell(row, "Child_ID"),
+      skillId: cell(row, "Skill_ID"),
+      weightedRawScore: parseNumber(cell(row, "Weighted_Raw_Score")),
+      normalizedScore: parseNumber(cell(row, "Normalized_Score")),
+      skillWeightPercent: parseNumber(cell(row, "Skill_Weight_Percent")),
+      weightedContribution: parseNumber(cell(row, "Weighted_Contribution")),
+      scoreBand: cell(row, "Score_Band") as ScoreBand,
+      calculatedAt: cell(row, "Calculated_At"),
+      calculationVersion: cell(row, "Calculation_Version"),
+    };
+    if (cell(row, "Previous_Score")) score.previousScore = parseNumber(cell(row, "Previous_Score"));
+    if (cell(row, "Change_From_Previous")) {
+      score.changeFromPrevious = parseNumber(cell(row, "Change_From_Previous"));
+    }
+    return score;
   }
 }

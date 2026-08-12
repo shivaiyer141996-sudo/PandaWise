@@ -6,6 +6,7 @@ import 'package:pandawise_mobile/core/theme/app_theme.dart';
 import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
 import 'package:pandawise_mobile/features/children/add_child_screen.dart';
 import 'package:pandawise_mobile/features/children/child_profile_screen.dart';
+import 'package:pandawise_mobile/features/discovery/discovery_flow.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.api, required this.session, super.key});
@@ -115,7 +116,7 @@ class _DashboardPage extends StatelessWidget {
               else ...<Widget>[
                 Text('Your child', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 12),
-                _ChildSummaryCard(child: child),
+                _ChildSummaryCard(api: api, session: session, child: child),
                 const SizedBox(height: 20),
                 Text('What’s next', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 12),
@@ -133,7 +134,7 @@ class _DashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       FilledButton(
-                        onPressed: () => _showPlanned(context, 'Development Check is sequenced into Sprint 2.'),
+                        onPressed: () => _openDiscovery(context, api, session, child),
                         child: const Text('Start Discovery'),
                       ),
                     ],
@@ -177,15 +178,19 @@ class _FirstChildCard extends StatelessWidget {
 }
 
 class _ChildSummaryCard extends StatelessWidget {
-  const _ChildSummaryCard({required this.child});
+  const _ChildSummaryCard({required this.api, required this.session, required this.child});
 
+  final PandaWiseApi api;
+  final SessionController session;
   final ChildProfile child;
 
   @override
   Widget build(BuildContext context) {
     return PandaWiseCard(
       onTap: () => Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(builder: (_) => ChildProfileScreen(child: child)),
+        MaterialPageRoute<void>(
+          builder: (_) => ChildProfileScreen(api: api, session: session, child: child),
+        ),
       ),
       child: Row(
         children: <Widget>[
@@ -251,8 +256,11 @@ class _ChildrenPage extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                 itemCount: session.children.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (BuildContext context, int index) =>
-                    _ChildSummaryCard(child: session.children[index]),
+                itemBuilder: (BuildContext context, int index) => _ChildSummaryCard(
+                  api: api,
+                  session: session,
+                  child: session.children[index],
+                ),
               ),
       ),
     );
@@ -313,7 +321,7 @@ class _ProfilePage extends StatelessWidget {
             label: const Text('Logout'),
           ),
           const SizedBox(height: 16),
-          const Text('PandaWise 0.1.0', textAlign: TextAlign.center),
+          const Text('PandaWise 0.2.0', textAlign: TextAlign.center),
         ],
       ),
     );
@@ -355,6 +363,19 @@ Future<void> _openAddChild(
 ) async {
   await Navigator.of(context).push<void>(
     MaterialPageRoute<void>(builder: (_) => AddChildScreen(api: api, session: session)),
+  );
+}
+
+Future<void> _openDiscovery(
+  BuildContext context,
+  PandaWiseApi api,
+  SessionController session,
+  ChildProfile child,
+) async {
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(
+      builder: (_) => PassionDiscoveryScreen(api: api, session: session, child: child),
+    ),
   );
 }
 

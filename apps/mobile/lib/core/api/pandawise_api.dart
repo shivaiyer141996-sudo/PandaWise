@@ -30,6 +30,19 @@ abstract interface class PandaWiseApi {
   Future<List<ChildProfile>> getChildren(String token);
   Future<ChildProfile> createChild(String token, CreateChildRequest request);
   Future<BootstrapData> getBootstrapData();
+  Future<List<String>> getSelectedPassions(String token, String childId);
+  Future<List<String>> selectPassions(String token, String childId, List<String> passionIds);
+  Future<AssessmentDetail> startAssessment(String token, String childId);
+  Future<AssessmentDetail> getAssessment(String token, String assessmentId);
+  Future<void> saveAssessmentResponse(
+    String token,
+    String assessmentId,
+    String questionId,
+    String optionId,
+  );
+  Future<GrowScoreReport> completeAssessment(String token, String assessmentId);
+  Future<GrowScoreReport> getAssessmentReport(String token, String assessmentId);
+  Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId);
 }
 
 class HttpPandaWiseApi implements PandaWiseApi {
@@ -121,6 +134,96 @@ class HttpPandaWiseApi implements PandaWiseApi {
     return BootstrapData.fromJson(json['data'] as Map<String, dynamic>);
   }
 
+  @override
+  Future<List<String>> getSelectedPassions(String token, String childId) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/children/$childId/passions',
+      token: token,
+    );
+    return (json['passionIds'] as List<dynamic>).cast<String>();
+  }
+
+  @override
+  Future<List<String>> selectPassions(
+    String token,
+    String childId,
+    List<String> passionIds,
+  ) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/children/$childId/passions',
+      token: token,
+      body: <String, dynamic>{'passionIds': passionIds},
+    );
+    return (json['passionIds'] as List<dynamic>).cast<String>();
+  }
+
+  @override
+  Future<AssessmentDetail> startAssessment(String token, String childId) async {
+    final Map<String, dynamic> json = await _send(
+      'POST',
+      '/v1/children/$childId/assessments',
+      token: token,
+    );
+    return AssessmentDetail.fromJson(json);
+  }
+
+  @override
+  Future<AssessmentDetail> getAssessment(String token, String assessmentId) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/assessments/$assessmentId',
+      token: token,
+    );
+    return AssessmentDetail.fromJson(json);
+  }
+
+  @override
+  Future<void> saveAssessmentResponse(
+    String token,
+    String assessmentId,
+    String questionId,
+    String optionId,
+  ) async {
+    await _send(
+      'PUT',
+      '/v1/assessments/$assessmentId/responses/$questionId',
+      token: token,
+      body: <String, dynamic>{'optionId': optionId},
+    );
+  }
+
+  @override
+  Future<GrowScoreReport> completeAssessment(String token, String assessmentId) async {
+    final Map<String, dynamic> json = await _send(
+      'POST',
+      '/v1/assessments/$assessmentId/complete',
+      token: token,
+    );
+    return GrowScoreReport.fromJson(json);
+  }
+
+  @override
+  Future<GrowScoreReport> getAssessmentReport(String token, String assessmentId) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/assessments/$assessmentId/report',
+      token: token,
+    );
+    return GrowScoreReport.fromJson(json);
+  }
+
+  @override
+  Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/children/$childId/growscore/latest',
+      token: token,
+    );
+    return GrowScoreReport.fromJson(json);
+  }
+
   AuthResult _authResult(Map<String, dynamic> json) {
     return AuthResult(
       token: json['token'] as String,
@@ -144,7 +247,10 @@ class HttpPandaWiseApi implements PandaWiseApi {
     try {
       response = switch (method) {
         'GET' => await _client.get(uri, headers: headers),
-        'POST' => await _client.post(uri, headers: headers, body: jsonEncode(body)),
+        'POST' => body == null
+            ? await _client.post(uri, headers: headers)
+            : await _client.post(uri, headers: headers, body: jsonEncode(body)),
+        'PUT' => await _client.put(uri, headers: headers, body: jsonEncode(body)),
         _ => throw UnsupportedError('Unsupported HTTP method $method'),
       };
     } on Exception {
@@ -154,8 +260,16 @@ class HttpPandaWiseApi implements PandaWiseApi {
       );
     }
 
-    final Object? decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
-    final Map<String, dynamic> json = decoded as Map<String, dynamic>;
+    final Map<String, dynamic> json;
+    try {
+      final Object? decoded = response.body.isEmpty ? <String, dynamic>{} : jsonDecode(response.body);
+      json = decoded as Map<String, dynamic>;
+    } on Exception {
+      throw const PandaWiseApiException(
+        'PandaWise received an unexpected response. Please try again.',
+        code: 'INVALID_RESPONSE',
+      );
+    }
     if (response.statusCode >= 200 && response.statusCode < 300) return json;
 
     final Map<String, dynamic>? error = json['error'] as Map<String, dynamic>?;

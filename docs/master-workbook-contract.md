@@ -62,3 +62,25 @@ this document records integration responsibilities and does not duplicate its ro
 `Assessment_Status`, `Journey_Status`, `Assessment_Count`, `Journey_Count`,
 `Current_GrowScore`, `Current_Badge_Level`, `Current_Streak`, `Record_Status`,
 `Created_At`, `Updated_At`, `Created_By`, `Updated_By`.
+
+## Operational headers used in Sprint 2
+
+- Questions: `Question_ID`, `Assessment_Type`, `Age_Group_ID`, `Respondent_Type`,
+  `Skill_ID`, `Question_Text`, `Question_Type_ID`, `Question_Set_Tier`, `Weight`,
+  `Reverse_Scored_Flag`, `Display_Order`, `Assessment_Version`, `Required_Flag`,
+  `Record_Status`.
+- Options: `Option_ID`, `Question_Type_ID`, `Display_Text`, `Numeric_Score`,
+  `Display_Order`, `Reverse_Score`, `Record_Status`.
+- Assessments: `Assessment_ID`, `Child_ID`, `Assessment_Version`,
+  `Assessment_Depth`, `Respondent_Mode`, `Started_At`, `Completed_At`,
+  `Overall_GrowScore`, `Score_Band`, `Question_Count`, `Assessment_Sequence`,
+  `Assessment_Status`, `Calculation_Version`.
+- Responses: `Response_ID`, `Assessment_ID`, `Child_ID`, `Question_ID`,
+  `Respondent_Type`, `Option_ID`, `Raw_Score`, `Adjusted_Score`, `Answered_At`,
+  `Record_Status`.
+- Skill scores: `Skill_Score_ID`, `Assessment_ID`, `Child_ID`, `Skill_ID`,
+  `Weighted_Raw_Score`, `Normalized_Score`, `Skill_Weight_Percent`,
+  `Weighted_Contribution`, `Score_Band`, `Previous_Score`,
+  `Change_From_Previous`, `Calculated_At`, `Calculation_Version`.
+- Passions: `Child_Passion_ID`, `Child_ID`, `Passion_ID`, `Preference_Rank`,
+  `Passion_Status`, `Source`, `Captured_At`, `Assessment_ID`, `Record_Status`.

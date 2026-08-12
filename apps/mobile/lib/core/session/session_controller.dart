@@ -113,6 +113,103 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<List<String>> getSelectedPassions(String childId) async {
+    final String? token = _token;
+    if (token == null) return <String>[];
+    try {
+      final List<String> values = await _api.getSelectedPassions(token, childId);
+      _error = null;
+      return values;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<bool> selectPassions(String childId, List<String> passionIds) async {
+    final String? token = _token;
+    if (token == null) return false;
+    _setBusy(true);
+    try {
+      await _api.selectPassions(token, childId, passionIds);
+      _error = null;
+      return true;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return false;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<AssessmentDetail?> startAssessment(String childId) async {
+    final String? token = _token;
+    if (token == null) return null;
+    _setBusy(true);
+    try {
+      final AssessmentDetail assessment = await _api.startAssessment(token, childId);
+      _error = null;
+      return assessment;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return null;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<bool> saveAssessmentResponse(
+    String assessmentId,
+    String questionId,
+    String optionId,
+  ) async {
+    final String? token = _token;
+    if (token == null) return false;
+    try {
+      await _api.saveAssessmentResponse(token, assessmentId, questionId, optionId);
+      _error = null;
+      return true;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<GrowScoreReport?> completeAssessment(String assessmentId) async {
+    final String? token = _token;
+    if (token == null) return null;
+    _setBusy(true);
+    try {
+      final GrowScoreReport report = await _api.completeAssessment(token, assessmentId);
+      _children = await _api.getChildren(token);
+      _error = null;
+      return report;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return null;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<GrowScoreReport?> getLatestGrowScoreReport(String childId) async {
+    final String? token = _token;
+    if (token == null) return null;
+    _setBusy(true);
+    try {
+      final GrowScoreReport report = await _api.getLatestGrowScoreReport(token, childId);
+      _error = null;
+      return report;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return null;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
   Future<void> logout() async {
     await _tokenStore.clear();
     _token = null;

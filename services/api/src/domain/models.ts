@@ -8,6 +8,16 @@ export type TimeCommitment =
 export type PlanId = "PLN001" | "PLN002" | "PLN003";
 export type AgeGroupId = "AG01" | "AG02" | "AG03";
 export type Gender = "Boy" | "Girl" | "Prefer Not to Say";
+export type RespondentType = "PARENT" | "CHILD";
+export type RespondentMode = "PARENT" | "HYBRID";
+export type AssessmentDepth = "CORE" | "COMPREHENSIVE";
+export type AssessmentStatus = "In Progress" | "Completed";
+export type ScoreBand =
+  | "PRIORITY_GROWTH_AREA"
+  | "DEVELOPING"
+  | "AGE_APPROPRIATE"
+  | "STRONG"
+  | "EXCEPTIONAL";
 
 export interface Parent {
   id: string;
@@ -80,6 +90,97 @@ export interface BootstrapData {
   skills: MasterOption[];
   passions: MasterOption[];
   timeCommitments: TimeCommitment[];
+}
+
+export interface QuestionOption {
+  id: string;
+  questionTypeId: string;
+  displayText: string;
+  numericScore: number;
+  reverseScore: number;
+  displayOrder: number;
+}
+
+export interface AssessmentQuestion {
+  id: string;
+  assessmentType: "SKILL";
+  ageGroupId: AgeGroupId;
+  respondentType: RespondentType;
+  skillId: string;
+  text: string;
+  questionTypeId: string;
+  tier: AssessmentDepth;
+  weight: number;
+  reverseScored: boolean;
+  displayOrder: number;
+  version: string;
+  required: boolean;
+  options: QuestionOption[];
+}
+
+export interface ChildPassion {
+  id: string;
+  childId: string;
+  passionId: string;
+  preferenceRank: number;
+  status: "Selected" | "Removed";
+  source: "Parent Selection";
+  capturedAt: string;
+  assessmentId?: string;
+  recordStatus: "Active" | "Inactive";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Assessment {
+  id: string;
+  childId: string;
+  version: string;
+  depth: AssessmentDepth;
+  respondentMode: RespondentMode;
+  startedAt: string;
+  completedAt?: string;
+  overallGrowScore?: number;
+  scoreBand?: ScoreBand;
+  journeyId?: string;
+  questionCount: number;
+  sequence: number;
+  status: AssessmentStatus;
+  createdAt: string;
+  updatedAt: string;
+  calculationVersion: string;
+}
+
+export interface AssessmentResponse {
+  id: string;
+  assessmentId: string;
+  childId: string;
+  questionId: string;
+  respondentType: RespondentType;
+  optionId: string;
+  rawScore: number;
+  adjustedScore: number;
+  responseText?: string;
+  answeredAt: string;
+  recordStatus: "Active";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SkillScore {
+  id: string;
+  assessmentId: string;
+  childId: string;
+  skillId: string;
+  weightedRawScore: number;
+  normalizedScore: number;
+  skillWeightPercent: number;
+  weightedContribution: number;
+  scoreBand: ScoreBand;
+  previousScore?: number;
+  changeFromPrevious?: number;
+  calculatedAt: string;
+  calculationVersion: string;
 }
 
 export function toPublicParent(parent: Parent): PublicParent {

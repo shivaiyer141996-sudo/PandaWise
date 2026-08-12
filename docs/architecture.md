@@ -21,7 +21,7 @@ mobile app to the spreadsheet so a later database migration stays feasible.
 - Authenticates parents and enforces plan entitlements.
 - Validates all inputs and derives server-owned fields.
 - Reads/writes Google Sheets through a repository interface.
-- Computes assessments, recommendations and unlock rules in later sprints.
+- Selects versioned assessment content and computes weighted GrowScore server-side.
 - Returns stable JSON contracts to the app.
 
 ### Google Sheets
@@ -67,6 +67,10 @@ notification module.
 
 - Header-driven row mapping prevents accidental dependence on column position.
 - Write operations use generated stable IDs and ISO timestamps.
+- Assessment responses are append-only events; the latest response per question is
+  used for auto-save/resume and completion.
+- Completion is idempotent: existing skill results are reused and only missing
+  score rows are appended before snapshots are updated.
 - API errors have machine-readable codes and never expose credentials or stack data.
 - Google Sheets timeouts, quota responses and malformed rows are translated into
   controlled service errors.

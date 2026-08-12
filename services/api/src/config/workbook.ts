@@ -7,5 +7,11 @@ export const workbookTabs = {
   grades: "04_Grade_Master",
   skills: "05_Skill_Master",
   passions: "06_Passion_Master",
+  questions: "07_Question_Master",
+  questionOptions: "08_Question_Options",
+  assessments: "12_Child_Assessments",
+  responses: "13_Child_Responses",
+  skillScores: "14_Child_Skill_Scores",
+  childPassions: "15_Child_Passions",
   configuration: "20_App_Configuration",
 } as const;

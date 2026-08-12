@@ -36,8 +36,10 @@ The core loop is:
 - Google Sheets master workbook has been expanded to 23 tabs.
 - Sprint 0 repository and API foundation is included.
 - Sprint 1 implements the design system, app shell, authentication and parent/child
-  flows. Discovery and journey modules remain intentionally sequenced into later
-  sprints.
+  flows.
+- Sprint 2 implements Passion Discovery, Development Check auto-save/resume,
+  versioned GrowScore, strengths-first reports and parent focus-area selection.
+- The 21-day journey remains intentionally sequenced into Sprint 3.
 
 ## Local API
 

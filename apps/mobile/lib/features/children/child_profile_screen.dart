@@ -1,12 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:pandawise_mobile/core/api/pandawise_api.dart';
 import 'package:pandawise_mobile/core/models/models.dart';
+import 'package:pandawise_mobile/core/session/session_controller.dart';
 import 'package:pandawise_mobile/core/theme/app_theme.dart';
 import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
+import 'package:pandawise_mobile/features/discovery/discovery_flow.dart';
 
 class ChildProfileScreen extends StatelessWidget {
-  const ChildProfileScreen({required this.child, super.key});
+  const ChildProfileScreen({
+    required this.api,
+    required this.session,
+    required this.child,
+    super.key,
+  });
 
+  final PandaWiseApi api;
+  final SessionController session;
   final ChildProfile child;
+
+  Future<void> _openNext(BuildContext context) async {
+    if (child.currentGrowScore == null) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => PassionDiscoveryScreen(api: api, session: session, child: child),
+        ),
+      );
+      return;
+    }
+    final GrowScoreReport? report = await session.getLatestGrowScoreReport(child.id);
+    if (!context.mounted) return;
+    if (report == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(session.error ?? 'GrowScore report is not available.')),
+      );
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => GrowScoreReportScreen(report: report, child: child),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,10 +95,8 @@ class ChildProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Passion Discovery and Development Check arrive in Sprint 2.')),
-            ),
-            child: const Text('Start Discovery'),
+            onPressed: () => _openNext(context),
+            child: Text(child.currentGrowScore == null ? 'Start Discovery' : 'View GrowScore Report'),
           ),
         ],
       ),
