@@ -34,9 +34,14 @@ export class ChildService {
     const parent = await this.store.getParentById(parentId);
     if (!parent) throw new NotFoundError("Parent");
 
-    const existingChildren = await this.store.listChildren(parentId);
-    const planLimit = parent.subscriptionPlanId === "PLN001" ? 1 : parent.subscriptionPlanId === "PLN002" ? 3 : Infinity;
-    if (existingChildren.length >= planLimit) {
+    const [existingChildren, entitlements] = await Promise.all([
+      this.store.listChildren(parentId),
+      this.store.getPlanEntitlements(parent.subscriptionPlanId),
+    ]);
+    if (
+      entitlements.maxChildren !== null &&
+      existingChildren.length >= entitlements.maxChildren
+    ) {
       throw new DomainError(
         "CHILD_LIMIT_REACHED",
         "Your current plan has reached its child-profile limit",

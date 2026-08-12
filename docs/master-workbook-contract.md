@@ -109,3 +109,14 @@ this document records integration responsibilities and does not duplicate its ro
   `Mission_ID`, `Completion_Status`, `Enjoyment_Score`, `Difficulty_Feedback`,
   `Parent_Notes`, `Completed_At`, `Mission_Points_Awarded`, `Streak_Day`,
   `Submission_Source`, `Record_Status`, `Created_At`, `Updated_At`.
+
+## Entitlement headers used in Sprint 4
+
+Subscription plans are resolved by `Plan_ID` and `Record_Status=Active` using:
+`Plan_Name`, `Max_Children`, `Included_Assessments_Per_Year`, `Question_Count`,
+`Skills_Visible`, `Missions_Per_Skill`, `Growth_Tracker_Enabled`,
+`Assessment_History_Access`, `Assessment_Comparison`, `Weekly_Summary_Enabled`,
+`Monthly_Report_Enabled` and `Advanced_Analytics_Enabled`.
+
+History and comparison limits are applied in the API response. The Flutter app must
+not receive hidden assessment or skill-history rows and then attempt to conceal them.

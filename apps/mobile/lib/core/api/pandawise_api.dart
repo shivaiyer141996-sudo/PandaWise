@@ -59,6 +59,7 @@ abstract interface class PandaWiseApi {
     String journeyId,
     int week,
   );
+  Future<ChildProgressView> getChildProgress(String token, String childId);
 }
 
 class HttpPandaWiseApi implements PandaWiseApi {
@@ -301,6 +302,16 @@ class HttpPandaWiseApi implements PandaWiseApi {
       token: token,
     );
     return WeeklyJourneySummary.fromJson(json);
+  }
+
+  @override
+  Future<ChildProgressView> getChildProgress(String token, String childId) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/children/$childId/progress',
+      token: token,
+    );
+    return ChildProgressView.fromJson(json);
   }
 
   AuthResult _authResult(Map<String, dynamic> json) {

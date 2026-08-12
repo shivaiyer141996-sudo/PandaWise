@@ -61,6 +61,11 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
+  Future<ChildProgressView> getChildProgress(String token, String childId) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<JourneyView> createJourney(
     String token,
     String childId,

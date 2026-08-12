@@ -42,7 +42,9 @@ The core loop is:
 - Sprint 3 implements explainable mission selection, the personalized 21-day
   journey, one visible daily mission, lightweight feedback, weekly summaries,
   streaks and the 70% reassessment gate.
-- Progress analytics and assessment comparison remain sequenced into Sprint 4.
+- Sprint 4 implements a plan-aware Progress dashboard, skill trends, Development
+  Check history, reassessment actions and new-journey generation after reassessment.
+- Commercial preferences and manual plan controls remain sequenced into Sprint 5.
 
 ## Local API
 

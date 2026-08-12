@@ -24,6 +24,8 @@ mobile app to the spreadsheet so a later database migration stays feasible.
 - Selects versioned assessment content and computes weighted GrowScore server-side.
 - Generates explainable, plan-aware 21-day journeys from mission and recommendation
   masters; only the current daily mission is exposed as actionable.
+- Separates assessment change from mission activity and filters history, comparison
+  and skill trends against Subscription Master entitlements before serialization.
 - Returns stable JSON contracts to the app.
 
 ### Google Sheets
@@ -75,6 +77,8 @@ notification module.
   score rows are appended before snapshots are updated.
 - Journey creation is idempotent per completed assessment; mission feedback creates
   one completion event per schedule and atomically advances journey/child snapshots.
+- Progress is derived from immutable assessments, skill scores, journeys and mission
+  completions; Child Master snapshots are not treated as historical truth.
 - API errors have machine-readable codes and never expose credentials or stack data.
 - Google Sheets timeouts, quota responses and malformed rows are translated into
   controlled service errors.

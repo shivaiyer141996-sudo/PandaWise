@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: PandaWise API
-  version: 0.3.0
-  description: Sprint 1–3 contract for onboarding, discovery, GrowScore and the 21-day journey.
+  version: 0.4.0
+  description: Sprint 1–4 contract for onboarding, GrowScore, journeys, progress and reassessment.
 servers:
   - url: http://localhost:8080
 paths:
@@ -238,6 +238,22 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/GrowScoreReport" }
         "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/children/{childId}/progress:
+    get:
+      operationId: getChildProgress
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Plan-filtered assessment growth, mission activity, skill trends and history.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChildProgressView" }
+        "404": { $ref: "#/components/responses/NotFoundError" }
   /v1/assessments/{assessmentId}:
     get:
       operationId: getAssessment
@@ -426,6 +442,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WeeklyJourneySummary" }
+        "403": { description: Weekly summaries are not included in the current plan. }
         "409": { description: The seven daily check-ins are incomplete. }
 components:
   securitySchemes:
@@ -728,6 +745,137 @@ components:
         mostPracticedSkill: { type: [object, "null"], additionalProperties: true }
         streak: { type: integer, minimum: 0 }
         message: { type: string }
+    ChildProgressView:
+      type: object
+      required:
+        - child
+        - entitlements
+        - assessmentSnapshot
+        - activitySnapshot
+        - skillTrends
+        - assessmentHistory
+        - actions
+      properties:
+        child:
+          type: object
+          required: [id, name]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            nickname: { type: [string, "null"] }
+        entitlements:
+          $ref: "#/components/schemas/ProgressEntitlements"
+        assessmentSnapshot:
+          $ref: "#/components/schemas/AssessmentProgressSnapshot"
+        activitySnapshot:
+          $ref: "#/components/schemas/MissionActivitySnapshot"
+        skillTrends:
+          type: array
+          items: { $ref: "#/components/schemas/SkillProgressTrend" }
+        assessmentHistory:
+          type: array
+          items: { $ref: "#/components/schemas/AssessmentHistoryItem" }
+        actions:
+          type: object
+          required: [canReassess, canStartJourney, nextAction]
+          properties:
+            canReassess: { type: boolean }
+            canStartJourney: { type: boolean }
+            nextAction:
+              enum: [DEVELOPMENT_CHECK, START_JOURNEY, CONTINUE_JOURNEY, REASSESS, VIEW_PROGRESS]
+    ProgressEntitlements:
+      type: object
+      required:
+        - planId
+        - planName
+        - growthTrackerEnabled
+        - assessmentHistoryAccess
+        - assessmentComparison
+        - advancedAnalyticsEnabled
+      properties:
+        planId: { enum: [PLN001, PLN002, PLN003] }
+        planName: { type: string }
+        growthTrackerEnabled: { type: boolean }
+        assessmentHistoryAccess: { enum: [Latest Only, Full] }
+        assessmentComparison: { enum: [None, Latest vs Previous, Full History] }
+        advancedAnalyticsEnabled: { type: boolean }
+    AssessmentProgressSnapshot:
+      type: object
+      required:
+        - latestAssessmentId
+        - latestGrowScore
+        - previousGrowScore
+        - changeFromPrevious
+        - completedAt
+        - scoreBand
+        - comparisonAvailable
+        - message
+      properties:
+        latestAssessmentId: { type: [string, "null"] }
+        latestGrowScore: { type: [number, "null"], minimum: 0, maximum: 100 }
+        previousGrowScore: { type: [number, "null"], minimum: 0, maximum: 100 }
+        changeFromPrevious: { type: [number, "null"] }
+        completedAt: { type: [string, "null"], format: date-time }
+        scoreBand:
+          type: [string, "null"]
+          enum: [PRIORITY_GROWTH_AREA, DEVELOPING, AGE_APPROPRIATE, STRONG, EXCEPTIONAL, null]
+        comparisonAvailable: { type: boolean }
+        message: { type: string }
+    MissionActivitySnapshot:
+      type: object
+      required:
+        - journeyId
+        - status
+        - missionsPlanned
+        - missionsCompleted
+        - completionPercent
+        - streak
+        - points
+      properties:
+        journeyId: { type: [string, "null"] }
+        status: { enum: [Not Started, Active, Paused, Completed] }
+        missionsPlanned: { type: integer, minimum: 0 }
+        missionsCompleted: { type: integer, minimum: 0 }
+        completionPercent: { type: number, minimum: 0, maximum: 100 }
+        streak: { type: integer, minimum: 0 }
+        points: { type: integer, minimum: 0 }
+    SkillProgressTrend:
+      type: object
+      required: [skillId, name, colour, latestScore, changeFromPrevious, points]
+      properties:
+        skillId: { type: string }
+        name: { type: string }
+        colour: { type: string }
+        latestScore: { type: number, minimum: 0, maximum: 100 }
+        changeFromPrevious: { type: [number, "null"] }
+        points:
+          type: array
+          items:
+            type: object
+            required: [assessmentId, sequence, completedAt, score]
+            properties:
+              assessmentId: { type: string }
+              sequence: { type: integer, minimum: 1 }
+              completedAt: { type: [string, "null"], format: date-time }
+              score: { type: number, minimum: 0, maximum: 100 }
+    AssessmentHistoryItem:
+      type: object
+      required:
+        - assessmentId
+        - sequence
+        - completedAt
+        - growScore
+        - scoreBand
+        - changeFromPrevious
+        - journey
+      properties:
+        assessmentId: { type: string }
+        sequence: { type: integer, minimum: 1 }
+        completedAt: { type: [string, "null"], format: date-time }
+        growScore: { type: [number, "null"], minimum: 0, maximum: 100 }
+        scoreBand: { type: [string, "null"] }
+        changeFromPrevious: { type: [number, "null"] }
+        journey: { type: [object, "null"], additionalProperties: true }
     ErrorResponse:
       type: object
       required: [error]

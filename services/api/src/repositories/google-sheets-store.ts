@@ -22,6 +22,7 @@ import type {
   MissionCompletionStatus,
   Parent,
   ParentType,
+  PlanEntitlements,
   PlanId,
   QuestionOption,
   RecommendationRule,
@@ -550,6 +551,52 @@ export class GoogleSheetsStore implements PandaWiseStore {
       throw new Error("Journey configuration contains values outside supported bounds");
     }
     return { journeyDays, reassessmentMinCompletionPercent };
+  }
+
+  async getPlanEntitlements(planId: PlanId): Promise<PlanEntitlements> {
+    const table = await this.readTable(workbookTabs.subscriptions, [
+      "Plan_ID",
+      "Plan_Name",
+      "Max_Children",
+      "Included_Assessments_Per_Year",
+      "Question_Count",
+      "Skills_Visible",
+      "Missions_Per_Skill",
+      "Growth_Tracker_Enabled",
+      "Assessment_History_Access",
+      "Assessment_Comparison",
+      "Weekly_Summary_Enabled",
+      "Monthly_Report_Enabled",
+      "Advanced_Analytics_Enabled",
+      "Record_Status",
+    ]);
+    const row = table.rows.find(
+      (candidate) =>
+        cell(candidate, "Plan_ID") === planId && cell(candidate, "Record_Status") === "Active",
+    );
+    if (!row) throw new Error(`Active subscription plan ${planId} was not found`);
+    const maxChildrenValue = cell(row, "Max_Children");
+    return {
+      planId,
+      planName: cell(row, "Plan_Name"),
+      maxChildren: maxChildrenValue === "Unlimited" ? null : parseNumber(maxChildrenValue),
+      includedAssessmentsPerYear: parseNumber(cell(row, "Included_Assessments_Per_Year")),
+      questionCount: parseNumber(cell(row, "Question_Count")),
+      skillsVisible: parseNumber(cell(row, "Skills_Visible")),
+      missionsPerSkill: parseNumber(cell(row, "Missions_Per_Skill")),
+      growthTrackerEnabled: parseBoolean(cell(row, "Growth_Tracker_Enabled")),
+      assessmentHistoryAccess: cell(
+        row,
+        "Assessment_History_Access",
+      ) as PlanEntitlements["assessmentHistoryAccess"],
+      assessmentComparison: cell(
+        row,
+        "Assessment_Comparison",
+      ) as PlanEntitlements["assessmentComparison"],
+      weeklySummaryEnabled: parseBoolean(cell(row, "Weekly_Summary_Enabled")),
+      monthlyReportEnabled: parseBoolean(cell(row, "Monthly_Report_Enabled")),
+      advancedAnalyticsEnabled: parseBoolean(cell(row, "Advanced_Analytics_Enabled")),
+    };
   }
 
   async listJourneys(childId: string): Promise<Journey[]> {

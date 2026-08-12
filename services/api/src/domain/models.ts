@@ -232,6 +232,22 @@ export interface JourneyConfiguration {
   reassessmentMinCompletionPercent: number;
 }
 
+export interface PlanEntitlements {
+  planId: PlanId;
+  planName: string;
+  maxChildren: number | null;
+  includedAssessmentsPerYear: number;
+  questionCount: number;
+  skillsVisible: number;
+  missionsPerSkill: number;
+  growthTrackerEnabled: boolean;
+  assessmentHistoryAccess: "Latest Only" | "Full";
+  assessmentComparison: "None" | "Latest vs Previous" | "Full History";
+  weeklySummaryEnabled: boolean;
+  monthlyReportEnabled: boolean;
+  advancedAnalyticsEnabled: boolean;
+}
+
 export interface Journey {
   id: string;
   childId: string;

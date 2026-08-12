@@ -7,7 +7,6 @@ import type {
   Child,
   ChildPassion,
   MasterOption,
-  PlanId,
   ScoreBand,
   SkillScore,
 } from "../domain/models.js";
@@ -15,12 +14,6 @@ import type { PandaWiseStore } from "../repositories/store.js";
 
 const assessmentVersion = "1.0";
 const calculationVersion = "1.0";
-
-const planRules: Record<PlanId, { annualLimit: number; questionCount: number }> = {
-  PLN001: { annualLimit: 2, questionCount: 30 },
-  PLN002: { annualLimit: 6, questionCount: 50 },
-  PLN003: { annualLimit: 12, questionCount: 50 },
-};
 
 export interface SaveResponseInput {
   optionId: string;
@@ -119,12 +112,12 @@ export class AssessmentService {
       );
     }
 
-    const rules = planRules[parent.subscriptionPlanId];
+    const entitlements = await this.store.getPlanEntitlements(parent.subscriptionPlanId);
     const currentYear = new Date().getUTCFullYear();
     const attemptsThisYear = assessments.filter(
       (assessment) => new Date(assessment.startedAt).getUTCFullYear() === currentYear,
     ).length;
-    if (attemptsThisYear >= rules.annualLimit) {
+    if (attemptsThisYear >= entitlements.includedAssessmentsPerYear) {
       throw new DomainError(
         "ASSESSMENT_LIMIT_REACHED",
         "Your plan has reached its annual Development Check limit",
@@ -132,13 +125,13 @@ export class AssessmentService {
       );
     }
 
-    const depth = parent.subscriptionPlanId === "PLN001" ? "CORE" : "COMPREHENSIVE";
+    const depth = entitlements.questionCount <= 30 ? "CORE" : "COMPREHENSIVE";
     const questions = await this.store.listAssessmentQuestions(
       child.ageGroupId,
       assessmentVersion,
       depth,
     );
-    this.validateQuestionBank(questions, rules.questionCount);
+    this.validateQuestionBank(questions, entitlements.questionCount);
 
     const timestamp = new Date().toISOString();
     const assessment: Assessment = {
@@ -308,15 +301,16 @@ export class AssessmentService {
     }
     const parent = await this.store.getParentById(parentId);
     if (!parent) throw new NotFoundError("Parent");
-    const [scores, bootstrap] = await Promise.all([
+    const [scores, bootstrap, entitlements] = await Promise.all([
       this.store.listSkillScores(assessmentId),
       this.store.getBootstrapData(),
+      this.store.getPlanEntitlements(parent.subscriptionPlanId),
     ]);
     const skillById = new Map(bootstrap.skills.map((skill) => [skill.id, skill]));
     const ranked = scores
       .map((score) => this.scoreView(score, skillById.get(score.skillId)))
       .sort((left, right) => right.score - left.score);
-    const visible = parent.subscriptionPlanId === "PLN001" ? ranked.slice(0, 5) : ranked;
+    const visible = ranked.slice(0, entitlements.skillsVisible);
     const focusAreas = [...visible].sort((left, right) => left.score - right.score).slice(0, 3);
     return {
       assessment: this.publicAssessment(assessment),

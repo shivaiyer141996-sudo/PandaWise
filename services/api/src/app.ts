@@ -12,6 +12,7 @@ import { registerAssessmentRoutes } from "./routes/assessments.js";
 import { registerBootstrapRoutes } from "./routes/bootstrap.js";
 import { registerChildRoutes } from "./routes/children.js";
 import { registerJourneyRoutes } from "./routes/journeys.js";
+import { registerProgressRoutes } from "./routes/progress.js";
 
 export interface BuildAppOptions {
   environment?: Environment;
@@ -45,7 +46,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.get("/health", async () => ({
     status: "ok",
     service: "pandawise-api",
-    version: "0.3.0",
+    version: "0.4.0",
   }));
 
   await registerBootstrapRoutes(app, store);
@@ -53,6 +54,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await registerChildRoutes(app, store);
   await registerAssessmentRoutes(app, store);
   await registerJourneyRoutes(app, store, options.now);
+  await registerProgressRoutes(app, store);
 
   app.setNotFoundHandler(async (_request, reply) => {
     return reply.code(404).send({

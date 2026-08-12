@@ -23,3 +23,8 @@ Sprint 3 implements SCR-015 through SCR-018 in Flutter: Journey Overview, Today'
 Mission, Mission Completion and Weekly Summary. The journey tab lists eligible child
 journeys; schedule metadata is visible, while future mission content remains locked
 until the current daily feedback is submitted.
+
+Sprint 4 implements SCR-019 through SCR-021: Growth Dashboard, Skill Analytics and
+Assessment History. Assessment growth and mission activity are presented as separate
+concepts, while plan-locked analytics explain the available upgrade outcome without
+using judgmental language.

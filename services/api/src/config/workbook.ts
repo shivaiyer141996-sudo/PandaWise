@@ -18,5 +18,6 @@ export const workbookTabs = {
   childPassions: "15_Child_Passions",
   journeys: "16_Journey_Tracker",
   missionCompletion: "17_Mission_Completion",
+  subscriptions: "18_Subscription_Master",
   configuration: "20_App_Configuration",
 } as const;
