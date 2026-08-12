@@ -7,9 +7,16 @@ import type {
   BootstrapData,
   Child,
   ChildPassion,
+  Journey,
+  JourneyConfiguration,
+  JourneySchedule,
   MasterOption,
+  Mission,
+  MissionCompletion,
   Parent,
   QuestionOption,
+  RecommendationRule,
+  ScoreBand,
   SkillScore,
 } from "../domain/models.js";
 import type { PandaWiseStore } from "./store.js";
@@ -108,6 +115,109 @@ function seedQuestions(): AssessmentQuestion[] {
   );
 }
 
+const missionDifficultySeeds = [
+  { difficulty: "EASY", durationMinutes: 10, points: 10, planEligibility: "ALL" },
+  {
+    difficulty: "MEDIUM",
+    durationMinutes: 15,
+    points: 20,
+    planEligibility: "GROWTH_AND_MASTERY",
+  },
+  { difficulty: "HARD", durationMinutes: 20, points: 30, planEligibility: "MASTERY" },
+] as const;
+
+function seedMissions(): Mission[] {
+  const ageGroups: AgeGroupId[] = ["AG01", "AG02", "AG03"];
+  return ageGroups.flatMap((ageGroupId) =>
+    skillSeeds.flatMap(([skillId, skillName], skillIndex) =>
+      missionDifficultySeeds.map((seed, difficultyIndex) => ({
+        id: `MIS-${ageGroupId}-${skillId}-${String(difficultyIndex + 1).padStart(2, "0")}`,
+        skillId,
+        ageGroupId,
+        name: `${skillName} ${["Starter", "Builder", "Challenge"][difficultyIndex]} Mission`,
+        description: `Practice ${skillName.toLowerCase()} through one calm, age-appropriate family activity.`,
+        difficulty: seed.difficulty,
+        durationMinutes: seed.durationMinutes,
+        materialsNeeded: "Everyday household items",
+        parentGuidance: "Encourage effort, allow choices and keep the activity pressure-free.",
+        childInstructions: `Try the ${skillName.toLowerCase()} activity and share what you noticed.`,
+        learningOutcome: `Build everyday ${skillName.toLowerCase()} through consistent practice.`,
+        points: seed.points,
+        repeatable: true,
+        indoorOutdoor: "BOTH" as const,
+        planEligibility: seed.planEligibility,
+        category: skillName,
+        displayOrder: skillIndex * 3 + difficultyIndex + 1,
+      })),
+    ),
+  );
+}
+
+const recommendationBands: Array<{
+  minScore: number;
+  maxScore: number;
+  scoreBand: ScoreBand;
+  priorityRank: number;
+  recommendedDifficulty: RecommendationRule["recommendedDifficulty"];
+  focusPercent: number;
+}> = [
+  {
+    minScore: 0,
+    maxScore: 39.99,
+    scoreBand: "PRIORITY_GROWTH_AREA",
+    priorityRank: 1,
+    recommendedDifficulty: "EASY",
+    focusPercent: 30,
+  },
+  {
+    minScore: 40,
+    maxScore: 59.99,
+    scoreBand: "DEVELOPING",
+    priorityRank: 2,
+    recommendedDifficulty: "EASY_TO_MEDIUM",
+    focusPercent: 25,
+  },
+  {
+    minScore: 60,
+    maxScore: 74.99,
+    scoreBand: "AGE_APPROPRIATE",
+    priorityRank: 3,
+    recommendedDifficulty: "MEDIUM",
+    focusPercent: 20,
+  },
+  {
+    minScore: 75,
+    maxScore: 89.99,
+    scoreBand: "STRONG",
+    priorityRank: 4,
+    recommendedDifficulty: "MEDIUM_TO_HARD",
+    focusPercent: 15,
+  },
+  {
+    minScore: 90,
+    maxScore: 100,
+    scoreBand: "EXCEPTIONAL",
+    priorityRank: 5,
+    recommendedDifficulty: "HARD",
+    focusPercent: 10,
+  },
+];
+
+function seedRecommendationRules(): RecommendationRule[] {
+  return skillSeeds.flatMap(([skillId, skillName], skillIndex) =>
+    recommendationBands.map((band, bandIndex) => ({
+      id: `REC${String(skillIndex * 5 + bandIndex + 1).padStart(3, "0")}`,
+      ageGroupId: "ALL",
+      skillId,
+      ...band,
+      missionCategory: "ANY",
+      parentMessageTemplate: `Build ${skillName} through regular, achievable practice and supportive feedback.`,
+      excludeCompletedWithinDays: 42,
+      minimumJourneyCompletionPercent: 70,
+    })),
+  );
+}
+
 const bootstrapData: BootstrapData = {
   ageGroups: [
     { id: "AG01", name: "Ages 3–6", respondentMode: "PARENT" },
@@ -133,6 +243,11 @@ export class MemoryStore implements PandaWiseStore {
   private readonly assessments = new Map<string, Assessment>();
   private readonly responses = new Map<string, AssessmentResponse>();
   private readonly skillScores = new Map<string, SkillScore[]>();
+  private readonly missions = seedMissions();
+  private readonly recommendationRules = seedRecommendationRules();
+  private readonly journeys = new Map<string, Journey>();
+  private readonly journeySchedules = new Map<string, JourneySchedule[]>();
+  private readonly missionCompletions = new Map<string, MissionCompletion>();
 
   async getParentByEmail(email: string): Promise<Parent | undefined> {
     const normalized = email.trim().toLowerCase();
@@ -248,6 +363,72 @@ export class MemoryStore implements PandaWiseStore {
   ): Promise<void> {
     this.assessments.set(assessment.id, structuredClone(assessment));
     this.skillScores.set(assessment.id, structuredClone(scores));
+    this.children.set(child.id, structuredClone(child));
+  }
+
+  async listMissions(ageGroupId: AgeGroupId): Promise<Mission[]> {
+    return this.missions
+      .filter((mission) => mission.ageGroupId === ageGroupId)
+      .sort((left, right) => left.displayOrder - right.displayOrder)
+      .map((mission) => structuredClone(mission));
+  }
+
+  async listRecommendationRules(ageGroupId: AgeGroupId): Promise<RecommendationRule[]> {
+    return this.recommendationRules
+      .filter((rule) => rule.ageGroupId === "ALL" || rule.ageGroupId === ageGroupId)
+      .map((rule) => structuredClone(rule));
+  }
+
+  async getJourneyConfiguration(): Promise<JourneyConfiguration> {
+    return { journeyDays: 21, reassessmentMinCompletionPercent: 70 };
+  }
+
+  async listJourneys(childId: string): Promise<Journey[]> {
+    return [...this.journeys.values()]
+      .filter((journey) => journey.childId === childId)
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map((journey) => structuredClone(journey));
+  }
+
+  async getJourney(journeyId: string): Promise<Journey | undefined> {
+    const journey = this.journeys.get(journeyId);
+    return journey ? structuredClone(journey) : undefined;
+  }
+
+  async listJourneySchedules(journeyId: string): Promise<JourneySchedule[]> {
+    return structuredClone(this.journeySchedules.get(journeyId) ?? []).sort(
+      (left, right) => left.day - right.day,
+    );
+  }
+
+  async listMissionCompletionsByChild(childId: string): Promise<MissionCompletion[]> {
+    return [...this.missionCompletions.values()]
+      .filter((completion) => completion.childId === childId)
+      .sort((left, right) => left.completedAt.localeCompare(right.completedAt))
+      .map((completion) => structuredClone(completion));
+  }
+
+  async createJourney(
+    journey: Journey,
+    schedules: JourneySchedule[],
+    assessment: Assessment,
+    child: Child,
+  ): Promise<void> {
+    this.journeys.set(journey.id, structuredClone(journey));
+    this.journeySchedules.set(journey.id, structuredClone(schedules));
+    this.assessments.set(assessment.id, structuredClone(assessment));
+    this.children.set(child.id, structuredClone(child));
+  }
+
+  async saveJourneyProgress(
+    completion: MissionCompletion,
+    journey: Journey,
+    schedules: JourneySchedule[],
+    child: Child,
+  ): Promise<void> {
+    this.missionCompletions.set(completion.scheduleId, structuredClone(completion));
+    this.journeys.set(journey.id, structuredClone(journey));
+    this.journeySchedules.set(journey.id, structuredClone(schedules));
     this.children.set(child.id, structuredClone(child));
   }
 }

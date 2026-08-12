@@ -43,6 +43,22 @@ abstract interface class PandaWiseApi {
   Future<GrowScoreReport> completeAssessment(String token, String assessmentId);
   Future<GrowScoreReport> getAssessmentReport(String token, String assessmentId);
   Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId);
+  Future<JourneyView> createJourney(String token, String childId, List<String> focusSkillIds);
+  Future<JourneyView> getCurrentJourney(String token, String childId);
+  Future<JourneyView> completeMission(
+    String token,
+    String journeyId,
+    String scheduleId, {
+    required String status,
+    required int enjoymentScore,
+    required String difficultyFeedback,
+    String? parentNotes,
+  });
+  Future<WeeklyJourneySummary> getWeeklyJourneySummary(
+    String token,
+    String journeyId,
+    int week,
+  );
 }
 
 class HttpPandaWiseApi implements PandaWiseApi {
@@ -222,6 +238,69 @@ class HttpPandaWiseApi implements PandaWiseApi {
       token: token,
     );
     return GrowScoreReport.fromJson(json);
+  }
+
+  @override
+  Future<JourneyView> createJourney(
+    String token,
+    String childId,
+    List<String> focusSkillIds,
+  ) async {
+    final Map<String, dynamic> json = await _send(
+      'POST',
+      '/v1/children/$childId/journeys',
+      token: token,
+      body: <String, dynamic>{'focusSkillIds': focusSkillIds},
+    );
+    return JourneyView.fromJson(json);
+  }
+
+  @override
+  Future<JourneyView> getCurrentJourney(String token, String childId) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/children/$childId/journeys/current',
+      token: token,
+    );
+    return JourneyView.fromJson(json);
+  }
+
+  @override
+  Future<JourneyView> completeMission(
+    String token,
+    String journeyId,
+    String scheduleId, {
+    required String status,
+    required int enjoymentScore,
+    required String difficultyFeedback,
+    String? parentNotes,
+  }) async {
+    final Map<String, dynamic> json = await _send(
+      'PUT',
+      '/v1/journeys/$journeyId/schedules/$scheduleId/completion',
+      token: token,
+      body: <String, dynamic>{
+        'status': status,
+        'enjoymentScore': enjoymentScore,
+        'difficultyFeedback': difficultyFeedback,
+        if (parentNotes?.trim().isNotEmpty == true) 'parentNotes': parentNotes!.trim(),
+      },
+    );
+    return JourneyView.fromJson(json);
+  }
+
+  @override
+  Future<WeeklyJourneySummary> getWeeklyJourneySummary(
+    String token,
+    String journeyId,
+    int week,
+  ) async {
+    final Map<String, dynamic> json = await _send(
+      'GET',
+      '/v1/journeys/$journeyId/weekly-summary/$week',
+      token: token,
+    );
+    return WeeklyJourneySummary.fromJson(json);
   }
 
   AuthResult _authResult(Map<String, dynamic> json) {

@@ -7,7 +7,13 @@ import type {
   BootstrapData,
   Child,
   ChildPassion,
+  Journey,
+  JourneyConfiguration,
+  JourneySchedule,
+  Mission,
+  MissionCompletion,
   Parent,
+  RecommendationRule,
   SkillScore,
 } from "../domain/models.js";
 
@@ -36,6 +42,25 @@ export interface PandaWiseStore {
   saveAssessmentResult(
     assessment: Assessment,
     skillScores: SkillScore[],
+    child: Child,
+  ): Promise<void>;
+  listMissions(ageGroupId: AgeGroupId): Promise<Mission[]>;
+  listRecommendationRules(ageGroupId: AgeGroupId): Promise<RecommendationRule[]>;
+  getJourneyConfiguration(): Promise<JourneyConfiguration>;
+  listJourneys(childId: string): Promise<Journey[]>;
+  getJourney(journeyId: string): Promise<Journey | undefined>;
+  listJourneySchedules(journeyId: string): Promise<JourneySchedule[]>;
+  listMissionCompletionsByChild(childId: string): Promise<MissionCompletion[]>;
+  createJourney(
+    journey: Journey,
+    schedules: JourneySchedule[],
+    assessment: Assessment,
+    child: Child,
+  ): Promise<void>;
+  saveJourneyProgress(
+    completion: MissionCompletion,
+    journey: Journey,
+    schedules: JourneySchedule[],
     child: Child,
   ): Promise<void>;
 }

@@ -37,7 +37,11 @@ class ChildProfileScreen extends StatelessWidget {
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => GrowScoreReportScreen(report: report, child: child),
+        builder: (_) => GrowScoreReportScreen(
+          report: report,
+          child: child,
+          session: session,
+        ),
       ),
     );
   }

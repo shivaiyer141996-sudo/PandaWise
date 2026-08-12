@@ -84,3 +84,28 @@ this document records integration responsibilities and does not duplicate its ro
   `Change_From_Previous`, `Calculated_At`, `Calculation_Version`.
 - Passions: `Child_Passion_ID`, `Child_ID`, `Passion_ID`, `Preference_Rank`,
   `Passion_Status`, `Source`, `Captured_At`, `Assessment_ID`, `Record_Status`.
+
+## Operational headers used in Sprint 3
+
+- Missions: `Mission_ID`, `Skill_ID`, `Age_Group_ID`, `Mission_Name`,
+  `Mission_Description`, `Difficulty_Level`, `Duration_Minutes`, `Materials_Needed`,
+  `Parent_Guidance`, `Child_Instructions`, `Learning_Outcome`, `Mission_Points`,
+  `Repeatable_Flag`, `Indoor_Outdoor`, `Plan_Eligibility`, `Mission_Category`,
+  `Display_Order`, `Record_Status`.
+- Recommendation rules: `Rule_ID`, `Age_Group_ID`, `Skill_ID`, `Min_Score`,
+  `Max_Score`, `Score_Band`, `Priority_Rank`, `Recommended_Difficulty`,
+  `Mission_Category`, `Focus_Percent`, `Parent_Message_Template`,
+  `Exclude_Completed_Within_Days`, `Minimum_Journey_Completion_Percent`,
+  `Record_Status`.
+- Scheduler: `Schedule_ID`, `Journey_ID`, `Child_ID`, `Mission_ID`, `Journey_Day`,
+  `Journey_Week`, `Scheduled_Date`, `Schedule_Status`, `Unlocked_Flag`,
+  `Priority_Source`, `Skill_ID`, `Completion_ID`, `Generated_At`, `Created_By`,
+  `Updated_At`, `Notes`.
+- Journey tracker: `Journey_ID`, `Child_ID`, `Source_Assessment_ID`, `Plan_ID`,
+  `Start_Date`, `Planned_End_Date`, `Actual_End_Date`, `Journey_Status`,
+  `Current_Day`, `Missions_Planned`, `Missions_Completed`, `Completion_Percent`,
+  `Reassessment_Unlocked_Flag`, `Created_At`, `Updated_At`, `Journey_Version`.
+- Mission feedback: `Completion_ID`, `Journey_ID`, `Schedule_ID`, `Child_ID`,
+  `Mission_ID`, `Completion_Status`, `Enjoyment_Score`, `Difficulty_Feedback`,
+  `Parent_Notes`, `Completed_At`, `Mission_Points_Awarded`, `Streak_Day`,
+  `Submission_Source`, `Record_Status`, `Created_At`, `Updated_At`.

@@ -353,3 +353,163 @@ class GrowScoreReport {
   final List<GrowScoreSkill> recommendedFocusAreas;
   final int lockedSkillCount;
 }
+
+class JourneyMission {
+  const JourneyMission({
+    required this.id,
+    required this.skillId,
+    required this.name,
+    required this.description,
+    required this.difficulty,
+    required this.durationMinutes,
+    required this.materialsNeeded,
+    required this.parentGuidance,
+    required this.childInstructions,
+    required this.learningOutcome,
+    required this.points,
+    required this.indoorOutdoor,
+    required this.category,
+  });
+
+  factory JourneyMission.fromJson(Map<String, dynamic> json) {
+    return JourneyMission(
+      id: json['id'] as String,
+      skillId: json['skillId'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String,
+      difficulty: json['difficulty'] as String,
+      durationMinutes: json['durationMinutes'] as int,
+      materialsNeeded: json['materialsNeeded'] as String,
+      parentGuidance: json['parentGuidance'] as String,
+      childInstructions: json['childInstructions'] as String,
+      learningOutcome: json['learningOutcome'] as String,
+      points: json['points'] as int,
+      indoorOutdoor: json['indoorOutdoor'] as String,
+      category: json['category'] as String,
+    );
+  }
+
+  final String id;
+  final String skillId;
+  final String name;
+  final String description;
+  final String difficulty;
+  final int durationMinutes;
+  final String materialsNeeded;
+  final String parentGuidance;
+  final String childInstructions;
+  final String learningOutcome;
+  final int points;
+  final String indoorOutdoor;
+  final String category;
+}
+
+class JourneyToday {
+  const JourneyToday({
+    required this.scheduleId,
+    required this.day,
+    required this.week,
+    required this.scheduledDate,
+    required this.reasons,
+    required this.mission,
+  });
+
+  factory JourneyToday.fromJson(Map<String, dynamic> json) {
+    return JourneyToday(
+      scheduleId: json['scheduleId'] as String,
+      day: json['day'] as int,
+      week: json['week'] as int,
+      scheduledDate: json['scheduledDate'] as String,
+      reasons: (json['reason'] as List<dynamic>).cast<String>(),
+      mission: JourneyMission.fromJson(json['mission'] as Map<String, dynamic>),
+    );
+  }
+
+  final String scheduleId;
+  final int day;
+  final int week;
+  final String scheduledDate;
+  final List<String> reasons;
+  final JourneyMission mission;
+}
+
+class JourneyView {
+  const JourneyView({
+    required this.id,
+    required this.childId,
+    required this.status,
+    required this.currentDay,
+    required this.missionsPlanned,
+    required this.missionsCompleted,
+    required this.completionPercent,
+    required this.streak,
+    required this.reassessmentUnlocked,
+    this.today,
+  });
+
+  factory JourneyView.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> journey = json['journey'] as Map<String, dynamic>;
+    final Map<String, dynamic> progress = json['progress'] as Map<String, dynamic>;
+    final Map<String, dynamic> reassessment = json['reassessment'] as Map<String, dynamic>;
+    final Map<String, dynamic>? today = json['today'] as Map<String, dynamic>?;
+    return JourneyView(
+      id: journey['id'] as String,
+      childId: journey['childId'] as String,
+      status: journey['status'] as String,
+      currentDay: progress['currentDay'] as int,
+      missionsPlanned: progress['planned'] as int,
+      missionsCompleted: progress['completed'] as int,
+      completionPercent: (progress['completionPercent'] as num).toDouble(),
+      streak: progress['streak'] as int,
+      reassessmentUnlocked: reassessment['unlocked'] as bool,
+      today: today == null ? null : JourneyToday.fromJson(today),
+    );
+  }
+
+  final String id;
+  final String childId;
+  final String status;
+  final int currentDay;
+  final int missionsPlanned;
+  final int missionsCompleted;
+  final double completionPercent;
+  final int streak;
+  final bool reassessmentUnlocked;
+  final JourneyToday? today;
+}
+
+class WeeklyJourneySummary {
+  const WeeklyJourneySummary({
+    required this.week,
+    required this.completed,
+    required this.completionPercent,
+    required this.totalPoints,
+    required this.averageEnjoyment,
+    required this.streak,
+    required this.message,
+    this.mostPracticedSkill,
+  });
+
+  factory WeeklyJourneySummary.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic>? skill = json['mostPracticedSkill'] as Map<String, dynamic>?;
+    return WeeklyJourneySummary(
+      week: json['week'] as int,
+      completed: json['completed'] as int,
+      completionPercent: (json['completionPercent'] as num).toDouble(),
+      totalPoints: json['totalPoints'] as int,
+      averageEnjoyment: (json['averageEnjoyment'] as num).toDouble(),
+      streak: json['streak'] as int,
+      message: json['message'] as String,
+      mostPracticedSkill: skill?['name'] as String?,
+    );
+  }
+
+  final int week;
+  final int completed;
+  final double completionPercent;
+  final int totalPoints;
+  final double averageEnjoyment;
+  final int streak;
+  final String message;
+  final String? mostPracticedSkill;
+}

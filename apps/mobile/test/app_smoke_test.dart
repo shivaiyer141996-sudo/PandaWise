@@ -61,6 +61,28 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
+  Future<JourneyView> createJourney(
+    String token,
+    String childId,
+    List<String> focusSkillIds,
+  ) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<JourneyView> completeMission(
+    String token,
+    String journeyId,
+    String scheduleId, {
+    required String status,
+    required int enjoymentScore,
+    required String difficultyFeedback,
+    String? parentNotes,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<GrowScoreReport> completeAssessment(String token, String assessmentId) {
     throw UnimplementedError();
   }
@@ -77,6 +99,20 @@ class _FakeApi implements PandaWiseApi {
 
   @override
   Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<JourneyView> getCurrentJourney(String token, String childId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<WeeklyJourneySummary> getWeeklyJourneySummary(
+    String token,
+    String journeyId,
+    int week,
+  ) {
     throw UnimplementedError();
   }
 

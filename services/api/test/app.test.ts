@@ -63,6 +63,46 @@ async function createChild(
   };
 }
 
+async function completeDevelopmentCheck(
+  app: Awaited<ReturnType<typeof buildApp>>,
+  token: string,
+  childId: string,
+) {
+  const authorization = { authorization: `Bearer ${token}` };
+  await app.inject({
+    method: "PUT",
+    url: `/v1/children/${childId}/passions`,
+    headers: authorization,
+    payload: { passionIds: ["PAS011", "PAS008"] },
+  });
+  const started = await app.inject({
+    method: "POST",
+    url: `/v1/children/${childId}/assessments`,
+    headers: authorization,
+  });
+  const assessmentId = started.json().assessment.id as string;
+  const questions = started.json().questions as Array<{
+    id: string;
+    options: Array<{ id: string }>;
+  }>;
+  for (const question of questions) {
+    const response = await app.inject({
+      method: "PUT",
+      url: `/v1/assessments/${assessmentId}/responses/${question.id}`,
+      headers: authorization,
+      payload: { optionId: question.options[0]?.id },
+    });
+    expect(response.statusCode).toBe(200);
+  }
+  const completed = await app.inject({
+    method: "POST",
+    url: `/v1/assessments/${assessmentId}/complete`,
+    headers: authorization,
+  });
+  expect(completed.statusCode).toBe(200);
+  return { assessmentId, report: completed.json() };
+}
+
 describe("PandaWise API", () => {
   it("reports health and bootstrap configuration", async () => {
     const app = await buildApp({ environment: testEnvironment, store: new MemoryStore() });
@@ -310,6 +350,195 @@ describe("PandaWise API", () => {
       currentGrowScore: 100,
       currentBadgeLevel: "Explorer",
     });
+    await app.close();
+  });
+
+  it("builds an explainable 21-day journey with only today's mission visible", async () => {
+    const now = new Date("2026-08-01T09:00:00.000Z");
+    const app = await buildApp({
+      environment: testEnvironment,
+      store: new MemoryStore(),
+      now: () => now,
+    });
+    const { body } = await register(app);
+    const { child } = await createChild(app, body.token);
+    const authorization = { authorization: `Bearer ${body.token}` };
+    await completeDevelopmentCheck(app, body.token, child.id);
+
+    const invalidFocus = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/journeys`,
+      headers: authorization,
+      payload: { focusSkillIds: [] },
+    });
+    expect(invalidFocus.statusCode).toBe(400);
+
+    const created = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/journeys`,
+      headers: authorization,
+      payload: { focusSkillIds: ["SKL001", "SKL002"] },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().journey).toMatchObject({
+      status: "Active",
+      currentDay: 1,
+      missionsPlanned: 21,
+      completionPercent: 0,
+      reassessmentUnlocked: false,
+    });
+    expect(created.json().schedules).toHaveLength(21);
+    expect(created.json().schedules.filter((schedule: { unlocked: boolean }) => schedule.unlocked)).toHaveLength(1);
+    expect(created.json().today).toMatchObject({
+      day: 1,
+      mission: { skillId: "SKL001", durationMinutes: 10 },
+    });
+    expect(created.json().today.reason).toContain("Chosen parent focus area");
+
+    const lockedSummary = await app.inject({
+      method: "GET",
+      url: `/v1/journeys/${created.json().journey.id as string}/weekly-summary/1`,
+      headers: authorization,
+    });
+    expect(lockedSummary.statusCode).toBe(409);
+    expect(lockedSummary.json().error.code).toBe("WEEKLY_SUMMARY_LOCKED");
+
+    const other = await register(app, "other-journey@example.com");
+    const privateJourney = await app.inject({
+      method: "GET",
+      url: `/v1/journeys/${created.json().journey.id as string}`,
+      headers: { authorization: `Bearer ${other.body.token}` },
+    });
+    expect(privateJourney.statusCode).toBe(404);
+
+    const current = await app.inject({
+      method: "GET",
+      url: `/v1/children/${child.id}/journeys/current`,
+      headers: authorization,
+    });
+    expect(current.statusCode).toBe(200);
+    expect(current.json().journey.id).toBe(created.json().journey.id);
+
+    const reassessment = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/assessments`,
+      headers: authorization,
+    });
+    expect(reassessment.statusCode).toBe(409);
+    expect(reassessment.json().error.code).toBe("REASSESSMENT_LOCKED");
+    await app.close();
+  });
+
+  it("records calendar-paced feedback, produces summaries and unlocks reassessment at 70%", async () => {
+    let now = new Date("2026-08-01T09:00:00.000Z");
+    const app = await buildApp({
+      environment: testEnvironment,
+      store: new MemoryStore(),
+      now: () => now,
+    });
+    const { body } = await register(app, "journey@example.com");
+    const { child } = await createChild(app, body.token);
+    const authorization = { authorization: `Bearer ${body.token}` };
+    await completeDevelopmentCheck(app, body.token, child.id);
+    const created = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/journeys`,
+      headers: authorization,
+      payload: { focusSkillIds: ["SKL001"] },
+    });
+    const journeyId = created.json().journey.id as string;
+    let view = created.json();
+    const firstTenMissionIds = new Set<string>();
+
+    for (let day = 1; day <= 21; day += 1) {
+      if (day > 1) {
+        now = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const current = await app.inject({
+          method: "GET",
+          url: `/v1/children/${child.id}/journeys/current`,
+          headers: authorization,
+        });
+        expect(current.statusCode).toBe(200);
+        view = current.json();
+      }
+      const today = view.today as { scheduleId: string; mission: { id: string } };
+      if (day <= 10) firstTenMissionIds.add(today.mission.id);
+      const response = await app.inject({
+        method: "PUT",
+        url: `/v1/journeys/${journeyId}/schedules/${today.scheduleId}/completion`,
+        headers: authorization,
+        payload: {
+          status: day <= 15 ? "YES" : "NO",
+          enjoymentScore: 4,
+          difficultyFeedback: "JUST_RIGHT",
+          parentNotes: day === 1 ? "A calm start." : undefined,
+        },
+      });
+      expect(response.statusCode).toBe(200);
+      view = response.json();
+
+      if (day === 1) {
+        expect(view.today).toBeNull();
+        const secondScheduleId = view.schedules[1].id as string;
+        const early = await app.inject({
+          method: "PUT",
+          url: `/v1/journeys/${journeyId}/schedules/${secondScheduleId}/completion`,
+          headers: authorization,
+          payload: {
+            status: "YES",
+            enjoymentScore: 4,
+            difficultyFeedback: "JUST_RIGHT",
+          },
+        });
+        expect(early.statusCode).toBe(409);
+        expect(early.json().error.code).toBe("MISSION_LOCKED");
+      }
+
+      if (day === 7) {
+        const summary = await app.inject({
+          method: "GET",
+          url: `/v1/journeys/${journeyId}/weekly-summary/1`,
+          headers: authorization,
+        });
+        expect(summary.statusCode).toBe(200);
+        expect(summary.json()).toMatchObject({ week: 1, days: 7, completed: 7, completionPercent: 100 });
+      }
+      if (day === 20) {
+        const locked = await app.inject({
+          method: "POST",
+          url: `/v1/children/${child.id}/assessments`,
+          headers: authorization,
+        });
+        expect(locked.statusCode).toBe(409);
+        expect(locked.json().error.code).toBe("REASSESSMENT_LOCKED");
+      }
+    }
+
+    expect(firstTenMissionIds.size).toBe(10);
+    expect(view.journey).toMatchObject({
+      status: "Completed",
+      missionsCompleted: 15,
+      completionPercent: 71.43,
+      reassessmentUnlocked: true,
+    });
+    expect(view.today).toBeNull();
+
+    const children = await app.inject({
+      method: "GET",
+      url: "/v1/children",
+      headers: authorization,
+    });
+    expect(children.json().children[0]).toMatchObject({
+      assessmentStatus: "Reassessment Due",
+      journeyStatus: "Completed",
+      journeyCount: 1,
+    });
+    const reassessment = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/assessments`,
+      headers: authorization,
+    });
+    expect(reassessment.statusCode).toBe(201);
     await app.close();
   });
 

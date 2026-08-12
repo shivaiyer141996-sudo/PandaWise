@@ -108,6 +108,16 @@ export class AssessmentService {
     const assessments = await this.store.listAssessments(childId);
     const inProgress = assessments.find((assessment) => assessment.status === "In Progress");
     if (inProgress) return this.view(parentId, inProgress.id);
+    if (
+      assessments.some((assessment) => assessment.status === "Completed") &&
+      child.assessmentStatus !== "Reassessment Due"
+    ) {
+      throw new DomainError(
+        "REASSESSMENT_LOCKED",
+        "Complete the active journey with at least 70% mission completion before reassessing",
+        409,
+      );
+    }
 
     const rules = planRules[parent.subscriptionPlanId];
     const currentYear = new Date().getUTCFullYear();

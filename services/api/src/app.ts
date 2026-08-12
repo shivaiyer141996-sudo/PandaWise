@@ -11,10 +11,12 @@ import { registerAuthRoutes } from "./routes/auth.js";
 import { registerAssessmentRoutes } from "./routes/assessments.js";
 import { registerBootstrapRoutes } from "./routes/bootstrap.js";
 import { registerChildRoutes } from "./routes/children.js";
+import { registerJourneyRoutes } from "./routes/journeys.js";
 
 export interface BuildAppOptions {
   environment?: Environment;
   store?: PandaWiseStore;
+  now?: () => Date;
 }
 
 function createStore(environment: Environment): PandaWiseStore {
@@ -43,13 +45,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.get("/health", async () => ({
     status: "ok",
     service: "pandawise-api",
-    version: "0.2.0",
+    version: "0.3.0",
   }));
 
   await registerBootstrapRoutes(app, store);
   await registerAuthRoutes(app, store, environment);
   await registerChildRoutes(app, store);
   await registerAssessmentRoutes(app, store);
+  await registerJourneyRoutes(app, store, options.now);
 
   app.setNotFoundHandler(async (_request, reply) => {
     return reply.code(404).send({
