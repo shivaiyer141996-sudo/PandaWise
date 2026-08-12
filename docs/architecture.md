@@ -30,6 +30,7 @@ mobile app to the spreadsheet so a later database migration stays feasible.
 - Exposes manual V1 plan selection without a payment gateway, validates safe
   downgrades, and persists parent communication, consent and referral preferences.
 - Returns stable JSON contracts to the app.
+- Separates liveness (`/health`) from data-provider readiness (`/ready`).
 
 ### Google Sheets
 
@@ -37,6 +38,8 @@ mobile app to the spreadsheet so a later database migration stays feasible.
 - Uses stable IDs and header names rather than row numbers as contracts.
 - Remains editable by authorized business users.
 - Is accessed by a least-privilege service account through the backend only.
+- Uses bounded exponential retry for quota/transient failures; permanent permission
+  and workbook-contract errors fail fast and surface through readiness monitoring.
 
 ## Dependency direction
 
@@ -52,6 +55,8 @@ Required production variables:
 - `DATA_PROVIDER=google-sheets`
 - `GOOGLE_SHEET_ID`
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
+- `GOOGLE_SHEETS_MAX_ATTEMPTS`
+- `GOOGLE_SHEETS_RETRY_BASE_MS`
 - `JWT_SECRET`
 - `ALLOWED_ORIGINS`
 

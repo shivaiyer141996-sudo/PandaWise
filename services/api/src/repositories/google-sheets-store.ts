@@ -41,6 +41,23 @@ interface SheetTable {
   rows: SheetRow[];
 }
 
+interface GoogleSheetsValuesClient {
+  get(parameters: sheets_v4.Params$Resource$Spreadsheets$Values$Get): Promise<{
+    data: { values?: unknown[][] | null };
+  }>;
+  update(parameters: sheets_v4.Params$Resource$Spreadsheets$Values$Update): Promise<unknown>;
+  append(parameters: sheets_v4.Params$Resource$Spreadsheets$Values$Append): Promise<unknown>;
+  batchUpdate(
+    parameters: sheets_v4.Params$Resource$Spreadsheets$Values$Batchupdate,
+  ): Promise<unknown>;
+}
+
+export interface GoogleSheetsStoreOptions {
+  valuesClient?: GoogleSheetsValuesClient;
+  sleep?: (milliseconds: number) => Promise<void>;
+  random?: () => number;
+}
+
 function parseBoolean(value: string): boolean {
   return value.trim().toUpperCase() === "TRUE";
 }
@@ -82,21 +99,50 @@ function normalizeServiceAccount(raw: string): Record<string, unknown> {
   return credentials;
 }
 
-export class GoogleSheetsStore implements PandaWiseStore {
-  private readonly sheets: sheets_v4.Sheets;
-  private readonly spreadsheetId: string;
+function sheetsErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null) return undefined;
+  const candidate = error as {
+    code?: unknown;
+    response?: { status?: unknown };
+  };
+  const value = candidate.response?.status ?? candidate.code;
+  return typeof value === "number" ? value : undefined;
+}
 
-  constructor(environment: Environment) {
+function isRetryableSheetsError(error: unknown): boolean {
+  const status = sheetsErrorStatus(error);
+  return status === 408 || status === 429 || (status !== undefined && status >= 500);
+}
+
+export class GoogleSheetsStore implements PandaWiseStore {
+  private readonly values: GoogleSheetsValuesClient;
+  private readonly spreadsheetId: string;
+  private readonly maxAttempts: number;
+  private readonly retryBaseMs: number;
+  private readonly sleep: (milliseconds: number) => Promise<void>;
+  private readonly random: () => number;
+
+  constructor(environment: Environment, options: GoogleSheetsStoreOptions = {}) {
     if (!environment.GOOGLE_SHEET_ID || !environment.GOOGLE_SERVICE_ACCOUNT_JSON) {
       throw new Error("Google Sheets provider is missing its required configuration");
     }
 
-    const auth = new google.auth.GoogleAuth({
-      credentials: normalizeServiceAccount(environment.GOOGLE_SERVICE_ACCOUNT_JSON),
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-    this.sheets = google.sheets({ version: "v4", auth });
+    if (options.valuesClient) {
+      this.values = options.valuesClient;
+    } else {
+      const auth = new google.auth.GoogleAuth({
+        credentials: normalizeServiceAccount(environment.GOOGLE_SERVICE_ACCOUNT_JSON),
+        scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      });
+      this.values = google.sheets({ version: "v4", auth }).spreadsheets.values;
+    }
     this.spreadsheetId = environment.GOOGLE_SHEET_ID;
+    this.maxAttempts = environment.GOOGLE_SHEETS_MAX_ATTEMPTS;
+    this.retryBaseMs = environment.GOOGLE_SHEETS_RETRY_BASE_MS;
+    this.sleep =
+      options.sleep ??
+      ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+    this.random = options.random ?? Math.random;
   }
 
   async getParentByEmail(email: string): Promise<Parent | undefined> {
@@ -184,12 +230,12 @@ export class GoogleSheetsStore implements PandaWiseStore {
 
     const columnIndex = table.headers.indexOf("Last_Login_At");
     const range = `'${workbookTabs.parents}'!${columnName(columnIndex)}${row.__rowNumber}`;
-    await this.sheets.spreadsheets.values.update({
+    await this.withRetry("update", () => this.values.update({
       spreadsheetId: this.spreadsheetId,
       range,
       valueInputOption: "RAW",
       requestBody: { values: [[timestamp]] },
-    });
+    }));
   }
 
   async listChildren(parentId: string): Promise<Child[]> {
@@ -759,11 +805,11 @@ export class GoogleSheetsStore implements PandaWiseStore {
   }
 
   private async readTable(tab: string, requiredHeaders: string[]): Promise<SheetTable> {
-    const response = await this.sheets.spreadsheets.values.get({
+    const response = await this.withRetry("read", () => this.values.get({
       spreadsheetId: this.spreadsheetId,
       range: `'${tab}'!A:ZZ`,
       valueRenderOption: "UNFORMATTED_VALUE",
-    });
+    }));
     const values = response.data.values ?? [];
     const headers = (values[0] ?? []).map((value) => String(value).trim());
 
@@ -796,13 +842,13 @@ export class GoogleSheetsStore implements PandaWiseStore {
     const values = records.map((record) =>
       table.headers.map((header) => toSheetValue(record[header])),
     );
-    await this.sheets.spreadsheets.values.append({
+    await this.withRetry("append", () => this.values.append({
       spreadsheetId: this.spreadsheetId,
       range: `'${tab}'!A:ZZ`,
       valueInputOption: "RAW",
       insertDataOption: "INSERT_ROWS",
       requestBody: { values },
-    });
+    }));
   }
 
   private async updateChildFields(
@@ -821,7 +867,7 @@ export class GoogleSheetsStore implements PandaWiseStore {
     const table = await this.readTable(tab, [idHeader, ...Object.keys(fields)]);
     const row = table.rows.find((candidate) => cell(candidate, idHeader) === id);
     if (!row) return;
-    await this.sheets.spreadsheets.values.batchUpdate({
+    await this.withRetry("batch update", () => this.values.batchUpdate({
       spreadsheetId: this.spreadsheetId,
       requestBody: {
         valueInputOption: "RAW",
@@ -830,6 +876,26 @@ export class GoogleSheetsStore implements PandaWiseStore {
           values: [[toSheetValue(value)]],
         })),
       },
+    }));
+  }
+
+  private async withRetry<T>(operation: string, action: () => Promise<T>): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= this.maxAttempts; attempt += 1) {
+      try {
+        return await action();
+      } catch (error) {
+        lastError = error;
+        if (!isRetryableSheetsError(error) || attempt === this.maxAttempts) break;
+        const exponentialDelay = this.retryBaseMs * (2 ** (attempt - 1));
+        const jitter = Math.floor(exponentialDelay * 0.25 * this.random());
+        await this.sleep(exponentialDelay + jitter);
+      }
+    }
+    const status = sheetsErrorStatus(lastError);
+    const detail = status === undefined ? "unexpected provider error" : `provider status ${status}`;
+    throw new Error(`Google Sheets ${operation} failed after ${this.maxAttempts} attempts (${detail})`, {
+      cause: lastError,
     });
   }
 

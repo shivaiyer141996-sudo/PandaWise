@@ -47,7 +47,10 @@ The core loop is:
 - Sprint 5 implements manual V1 plan selection, live-master commercial limits,
   notification centre/preferences, parent settings, independent marketing consent
   and referral handling.
-- Release regression, accessibility and operational hardening remain in Sprint 6.
+- Sprint 6 delivers full-loop regression, accessible/resilient client behavior,
+  bounded Google Sheets recovery, security gates and an Android test artifact.
+- The repository is at Release 1.0 candidate `1.0.0-rc.1`; production signing and
+  the human launch checklist remain environment-owner approvals.
 
 ## Local API
 
@@ -75,7 +78,9 @@ flutter run --dart-define=PANDAWISE_API_BASE_URL=http://10.0.2.2:8080
 
 ```bash
 npm run check
+npm run audit
 cd apps/mobile && flutter analyze && flutter test
 ```
 
-No Google credentials or production secrets belong in this repository.
+Operational recovery and release evidence live under `docs/operations` and
+`docs/release`. No Google credentials or production secrets belong in this repository.

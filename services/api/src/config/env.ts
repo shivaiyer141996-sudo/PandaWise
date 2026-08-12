@@ -12,6 +12,8 @@ const envSchema = z
     DATA_PROVIDER: z.enum(["memory", "google-sheets"]).default("memory"),
     GOOGLE_SHEET_ID: z.string().optional(),
     GOOGLE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+    GOOGLE_SHEETS_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+    GOOGLE_SHEETS_RETRY_BASE_MS: z.coerce.number().int().min(10).max(5_000).default(200),
     JWT_SECRET: z.string().min(32).default("local-development-only-secret-32-chars"),
     JWT_EXPIRES_IN: z.string().default("8h"),
   })

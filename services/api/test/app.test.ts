@@ -11,6 +11,8 @@ const testEnvironment: Environment = {
   LOG_LEVEL: "silent",
   ALLOWED_ORIGINS: "*",
   DATA_PROVIDER: "memory",
+  GOOGLE_SHEETS_MAX_ATTEMPTS: 3,
+  GOOGLE_SHEETS_RETRY_BASE_MS: 200,
   JWT_SECRET: "test-only-jwt-secret-with-more-than-32-characters",
   JWT_EXPIRES_IN: "1h",
 };
@@ -184,10 +186,13 @@ describe("PandaWise API", () => {
   it("reports health and bootstrap configuration", async () => {
     const app = await buildApp({ environment: testEnvironment, store: new MemoryStore() });
     const health = await app.inject({ method: "GET", url: "/health" });
+    const ready = await app.inject({ method: "GET", url: "/ready" });
     const bootstrap = await app.inject({ method: "GET", url: "/v1/config/bootstrap" });
 
     expect(health.statusCode).toBe(200);
     expect(health.json()).toMatchObject({ status: "ok", service: "pandawise-api" });
+    expect(ready.statusCode).toBe(200);
+    expect(ready.json()).toMatchObject({ status: "ready", dataProvider: "memory" });
     expect(bootstrap.statusCode).toBe(200);
     expect(bootstrap.json().data.ageGroups).toHaveLength(3);
     await app.close();

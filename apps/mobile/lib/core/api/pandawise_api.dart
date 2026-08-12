@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 import 'package:pandawise_mobile/core/models/models.dart';
@@ -84,16 +86,28 @@ abstract interface class PandaWiseApi {
 }
 
 class HttpPandaWiseApi implements PandaWiseApi {
-  HttpPandaWiseApi({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
+  HttpPandaWiseApi({
+    http.Client? client,
+    String? baseUrl,
+    Duration requestTimeout = const Duration(seconds: 15),
+    Duration initialRetryDelay = const Duration(milliseconds: 250),
+    int maxGetAttempts = 3,
+  })  : assert(maxGetAttempts > 0),
+        _client = client ?? http.Client(),
         _baseUrl = baseUrl ??
             const String.fromEnvironment(
               'PANDAWISE_API_BASE_URL',
               defaultValue: 'http://10.0.2.2:8080',
-            );
+            ),
+        _requestTimeout = requestTimeout,
+        _initialRetryDelay = initialRetryDelay,
+        _maxGetAttempts = maxGetAttempts;
 
   final http.Client _client;
   final String _baseUrl;
+  final Duration _requestTimeout;
+  final Duration _initialRetryDelay;
+  final int _maxGetAttempts;
 
   @override
   Future<AuthResult> login({required String email, required String password}) async {
@@ -454,22 +468,7 @@ class HttpPandaWiseApi implements PandaWiseApi {
       if (body != null) 'content-type': 'application/json',
       if (token != null) 'authorization': 'Bearer $token',
     };
-    final http.Response response;
-    try {
-      response = switch (method) {
-        'GET' => await _client.get(uri, headers: headers),
-        'POST' => body == null
-            ? await _client.post(uri, headers: headers)
-            : await _client.post(uri, headers: headers, body: jsonEncode(body)),
-        'PUT' => await _client.put(uri, headers: headers, body: jsonEncode(body)),
-        _ => throw UnsupportedError('Unsupported HTTP method $method'),
-      };
-    } on Exception {
-      throw const PandaWiseApiException(
-        'PandaWise is having trouble connecting. Please try again.',
-        code: 'NETWORK_ERROR',
-      );
-    }
+    final http.Response response = await _requestWithRetry(method, uri, headers, body);
 
     final Map<String, dynamic> json;
     try {
@@ -487,6 +486,66 @@ class HttpPandaWiseApi implements PandaWiseApi {
     throw PandaWiseApiException(
       error?['message'] as String? ?? 'PandaWise could not complete this request.',
       code: error?['code'] as String?,
+    );
+  }
+
+  Future<http.Response> _requestWithRetry(
+    String method,
+    Uri uri,
+    Map<String, String> headers,
+    Map<String, dynamic>? body,
+  ) async {
+    final int attempts = method == 'GET' ? _maxGetAttempts : 1;
+    for (int attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        final http.Response response = await _requestOnce(method, uri, headers, body)
+            .timeout(_requestTimeout);
+        if (method != 'GET' || !_isTransientStatus(response.statusCode) || attempt == attempts) {
+          return response;
+        }
+      } on TimeoutException catch (_) {
+        if (attempt == attempts) throw _networkException();
+      } on http.ClientException catch (_) {
+        if (attempt == attempts) throw _networkException();
+      } on PandaWiseApiException {
+        rethrow;
+      } on Exception catch (_) {
+        throw _networkException();
+      }
+      await Future<void>.delayed(_retryDelay(attempt));
+    }
+    throw _networkException();
+  }
+
+  Future<http.Response> _requestOnce(
+    String method,
+    Uri uri,
+    Map<String, String> headers,
+    Map<String, dynamic>? body,
+  ) {
+    return switch (method) {
+      'GET' => _client.get(uri, headers: headers),
+      'POST' => body == null
+          ? _client.post(uri, headers: headers)
+          : _client.post(uri, headers: headers, body: jsonEncode(body)),
+      'PUT' => _client.put(uri, headers: headers, body: jsonEncode(body)),
+      _ => throw UnsupportedError('Unsupported HTTP method $method'),
+    };
+  }
+
+  Duration _retryDelay(int attempt) {
+    final int multiplier = pow(2, attempt - 1).toInt();
+    return Duration(microseconds: _initialRetryDelay.inMicroseconds * multiplier);
+  }
+
+  bool _isTransientStatus(int statusCode) {
+    return statusCode == 408 || statusCode == 429 || statusCode >= 500;
+  }
+
+  PandaWiseApiException _networkException() {
+    return const PandaWiseApiException(
+      'PandaWise is having trouble connecting. Check your connection and try again.',
+      code: 'NETWORK_ERROR',
     );
   }
 }
