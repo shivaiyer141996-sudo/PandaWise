@@ -47,8 +47,25 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.get("/health", async () => ({
     status: "ok",
     service: "pandawise-api",
-    version: "0.5.0",
+    version: "1.0.0-rc.1",
   }));
+
+  app.get("/ready", async (_request, reply) => {
+    try {
+      await store.getBootstrapData();
+      return reply.code(200).send({
+        status: "ready",
+        service: "pandawise-api",
+        dataProvider: environment.DATA_PROVIDER,
+      });
+    } catch {
+      return reply.code(503).send({
+        status: "not_ready",
+        service: "pandawise-api",
+        dataProvider: environment.DATA_PROVIDER,
+      });
+    }
+  });
 
   await registerBootstrapRoutes(app, store);
   await registerAuthRoutes(app, store, environment);

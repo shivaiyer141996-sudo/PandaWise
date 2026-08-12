@@ -45,9 +45,15 @@ class PandaWiseLoadingButton extends StatelessWidget {
     return FilledButton(
       onPressed: loading ? null : onPressed,
       child: loading
-          ? const SizedBox.square(
-              dimension: 22,
-              child: CircularProgressIndicator(strokeWidth: 2),
+          ? Semantics(
+              label: '$label in progress',
+              liveRegion: true,
+              child: const ExcludeSemantics(
+                child: SizedBox.square(
+                  dimension: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
             )
           : Text(label),
     );

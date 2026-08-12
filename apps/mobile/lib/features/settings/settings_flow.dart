@@ -133,7 +133,7 @@ class ProfileTab extends StatelessWidget {
             label: const Text('Logout'),
           ),
           const SizedBox(height: 16),
-          const Text('PandaWise 0.5.0', textAlign: TextAlign.center),
+          const Text('PandaWise 1.0.0 RC1', textAlign: TextAlign.center),
         ],
       ),
     );

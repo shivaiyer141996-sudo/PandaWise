@@ -112,6 +112,9 @@ Exit criteria:
 
 ## Sprint 6 — Release hardening
 
+Status: Implemented in the Release 1.0 candidate. Production signing and the manual
+launch checklist require protected deployment credentials and named owners.
+
 Deliverables:
 
 - End-to-end regression tests for the full parent journey.
