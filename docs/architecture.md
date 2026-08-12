@@ -22,6 +22,8 @@ mobile app to the spreadsheet so a later database migration stays feasible.
 - Validates all inputs and derives server-owned fields.
 - Reads/writes Google Sheets through a repository interface.
 - Selects versioned assessment content and computes weighted GrowScore server-side.
+- Generates explainable, plan-aware 21-day journeys from mission and recommendation
+  masters; only the current daily mission is exposed as actionable.
 - Returns stable JSON contracts to the app.
 
 ### Google Sheets
@@ -71,6 +73,8 @@ notification module.
   used for auto-save/resume and completion.
 - Completion is idempotent: existing skill results are reused and only missing
   score rows are appended before snapshots are updated.
+- Journey creation is idempotent per completed assessment; mission feedback creates
+  one completion event per schedule and atomically advances journey/child snapshots.
 - API errors have machine-readable codes and never expose credentials or stack data.
 - Google Sheets timeouts, quota responses and malformed rows are translated into
   controlled service errors.

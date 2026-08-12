@@ -210,6 +210,84 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<JourneyView?> createJourney(String childId, List<String> focusSkillIds) async {
+    final String? token = _token;
+    if (token == null) return null;
+    _setBusy(true);
+    try {
+      final JourneyView journey = await _api.createJourney(token, childId, focusSkillIds);
+      _children = await _api.getChildren(token);
+      _error = null;
+      return journey;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return null;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<JourneyView?> getCurrentJourney(String childId) async {
+    final String? token = _token;
+    if (token == null) return null;
+    try {
+      final JourneyView journey = await _api.getCurrentJourney(token, childId);
+      _error = null;
+      return journey;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<JourneyView?> completeMission(
+    JourneyView journey, {
+    required String status,
+    required int enjoymentScore,
+    required String difficultyFeedback,
+    String? parentNotes,
+  }) async {
+    final String? token = _token;
+    final JourneyToday? today = journey.today;
+    if (token == null || today == null) return null;
+    _setBusy(true);
+    try {
+      final JourneyView updated = await _api.completeMission(
+        token,
+        journey.id,
+        today.scheduleId,
+        status: status,
+        enjoymentScore: enjoymentScore,
+        difficultyFeedback: difficultyFeedback,
+        parentNotes: parentNotes,
+      );
+      _children = await _api.getChildren(token);
+      _error = null;
+      return updated;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      return null;
+    } finally {
+      _setBusy(false);
+    }
+  }
+
+  Future<WeeklyJourneySummary?> getWeeklyJourneySummary(String journeyId, int week) async {
+    final String? token = _token;
+    if (token == null) return null;
+    try {
+      final WeeklyJourneySummary summary =
+          await _api.getWeeklyJourneySummary(token, journeyId, week);
+      _error = null;
+      return summary;
+    } on PandaWiseApiException catch (exception) {
+      _error = exception.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
   Future<void> logout() async {
     await _tokenStore.clear();
     _token = null;

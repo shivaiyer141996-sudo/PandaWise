@@ -11,11 +11,20 @@ import type {
   Child,
   ChildPassion,
   Gender,
+  Journey,
+  JourneyConfiguration,
+  JourneySchedule,
   MasterOption,
+  Mission,
+  MissionCompletion,
+  MissionDifficulty,
+  MissionDifficultyFeedback,
+  MissionCompletionStatus,
   Parent,
   ParentType,
   PlanId,
   QuestionOption,
+  RecommendationRule,
   RespondentMode,
   RespondentType,
   ScoreBand,
@@ -477,6 +486,189 @@ export class GoogleSheetsStore implements PandaWiseStore {
     });
   }
 
+  async listMissions(ageGroupId: AgeGroupId): Promise<Mission[]> {
+    const table = await this.readTable(workbookTabs.missions, [
+      "Mission_ID",
+      "Skill_ID",
+      "Age_Group_ID",
+      "Mission_Name",
+      "Mission_Description",
+      "Difficulty_Level",
+      "Duration_Minutes",
+      "Record_Status",
+    ]);
+    return table.rows
+      .filter(
+        (row) =>
+          cell(row, "Age_Group_ID") === ageGroupId && cell(row, "Record_Status") === "Active",
+      )
+      .map((row) => this.missionFromRow(row))
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+  }
+
+  async listRecommendationRules(ageGroupId: AgeGroupId): Promise<RecommendationRule[]> {
+    const table = await this.readTable(workbookTabs.recommendationRules, [
+      "Rule_ID",
+      "Age_Group_ID",
+      "Skill_ID",
+      "Min_Score",
+      "Max_Score",
+      "Recommended_Difficulty",
+      "Record_Status",
+    ]);
+    return table.rows
+      .filter(
+        (row) =>
+          (cell(row, "Age_Group_ID") === "ALL" || cell(row, "Age_Group_ID") === ageGroupId) &&
+          cell(row, "Record_Status") === "Active",
+      )
+      .map((row) => this.recommendationRuleFromRow(row));
+  }
+
+  async getJourneyConfiguration(): Promise<JourneyConfiguration> {
+    const table = await this.readTable(workbookTabs.configuration, [
+      "Config_Key",
+      "Config_Value",
+      "Record_Status",
+    ]);
+    const active = new Map(
+      table.rows
+        .filter((row) => cell(row, "Record_Status") === "Active")
+        .map((row) => [cell(row, "Config_Key"), cell(row, "Config_Value")]),
+    );
+    const journeyDays = parseNumber(active.get("DEFAULT_JOURNEY_DAYS") ?? "", 21);
+    const reassessmentMinCompletionPercent = parseNumber(
+      active.get("REASSESSMENT_MIN_COMPLETION_PERCENT") ?? "",
+      70,
+    );
+    if (
+      journeyDays < 1 ||
+      journeyDays > 90 ||
+      reassessmentMinCompletionPercent < 0 ||
+      reassessmentMinCompletionPercent > 100
+    ) {
+      throw new Error("Journey configuration contains values outside supported bounds");
+    }
+    return { journeyDays, reassessmentMinCompletionPercent };
+  }
+
+  async listJourneys(childId: string): Promise<Journey[]> {
+    const table = await this.readTable(workbookTabs.journeys, [
+      "Journey_ID",
+      "Child_ID",
+      "Journey_Status",
+    ]);
+    return table.rows
+      .filter((row) => cell(row, "Child_ID") === childId)
+      .map((row) => this.journeyFromRow(row))
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+  }
+
+  async getJourney(journeyId: string): Promise<Journey | undefined> {
+    const table = await this.readTable(workbookTabs.journeys, ["Journey_ID"]);
+    const row = table.rows.find((candidate) => cell(candidate, "Journey_ID") === journeyId);
+    return row ? this.journeyFromRow(row) : undefined;
+  }
+
+  async listJourneySchedules(journeyId: string): Promise<JourneySchedule[]> {
+    const table = await this.readTable(workbookTabs.missionScheduler, [
+      "Schedule_ID",
+      "Journey_ID",
+      "Mission_ID",
+    ]);
+    return table.rows
+      .filter((row) => cell(row, "Journey_ID") === journeyId)
+      .map((row) => this.journeyScheduleFromRow(row))
+      .sort((left, right) => left.day - right.day);
+  }
+
+  async listMissionCompletionsByChild(childId: string): Promise<MissionCompletion[]> {
+    const table = await this.readTable(workbookTabs.missionCompletion, [
+      "Completion_ID",
+      "Child_ID",
+      "Schedule_ID",
+    ]);
+    return table.rows
+      .filter((row) => cell(row, "Child_ID") === childId && cell(row, "Record_Status") === "Active")
+      .map((row) => this.missionCompletionFromRow(row))
+      .sort((left, right) => left.completedAt.localeCompare(right.completedAt));
+  }
+
+  async createJourney(
+    journey: Journey,
+    schedules: JourneySchedule[],
+    assessment: Assessment,
+    child: Child,
+  ): Promise<void> {
+    await this.appendObject(workbookTabs.journeys, this.journeyRecord(journey));
+    await this.appendObjects(
+      workbookTabs.missionScheduler,
+      schedules.map((schedule) => this.journeyScheduleRecord(schedule)),
+    );
+    await this.updateRowFields(workbookTabs.assessments, "Assessment_ID", assessment.id, {
+      Journey_ID: assessment.journeyId ?? "",
+      Updated_At: assessment.updatedAt,
+    });
+    await this.updateChildFields(child.id, {
+      Journey_Status: child.journeyStatus,
+      Updated_At: child.updatedAt,
+      Updated_By: child.parentId,
+    });
+  }
+
+  async saveJourneyProgress(
+    completion: MissionCompletion,
+    journey: Journey,
+    schedules: JourneySchedule[],
+    child: Child,
+  ): Promise<void> {
+    await this.appendObject(workbookTabs.missionCompletion, {
+      Completion_ID: completion.id,
+      Journey_ID: completion.journeyId,
+      Schedule_ID: completion.scheduleId,
+      Child_ID: completion.childId,
+      Mission_ID: completion.missionId,
+      Completion_Status: completion.status,
+      Enjoyment_Score: completion.enjoymentScore,
+      Difficulty_Feedback: completion.difficultyFeedback,
+      Parent_Notes: completion.parentNotes ?? "",
+      Completed_At: completion.completedAt,
+      Mission_Points_Awarded: completion.pointsAwarded,
+      Streak_Day: completion.streakDay,
+      Submission_Source: completion.submissionSource,
+      Record_Status: completion.recordStatus,
+      Created_At: completion.createdAt,
+      Updated_At: completion.updatedAt,
+    });
+    await this.updateRowFields(workbookTabs.journeys, "Journey_ID", journey.id, {
+      Actual_End_Date: journey.actualEndDate ?? "",
+      Journey_Status: journey.status,
+      Current_Day: journey.currentDay,
+      Missions_Completed: journey.missionsCompleted,
+      Completion_Percent: journey.completionPercent,
+      Reassessment_Unlocked_Flag: journey.reassessmentUnlocked,
+      Updated_At: journey.updatedAt,
+    });
+    for (const schedule of schedules.filter(
+      (candidate) => candidate.completionId === completion.id,
+    )) {
+      await this.updateRowFields(workbookTabs.missionScheduler, "Schedule_ID", schedule.id, {
+        Schedule_Status: schedule.status,
+        Unlocked_Flag: schedule.unlocked,
+        Completion_ID: schedule.completionId ?? "",
+        Updated_At: schedule.updatedAt,
+      });
+    }
+    await this.updateChildFields(child.id, {
+      Assessment_Status: child.assessmentStatus,
+      Journey_Status: child.journeyStatus,
+      Journey_Count: child.journeyCount,
+      Current_Streak: child.currentStreak,
+      Updated_At: child.updatedAt,
+      Updated_By: child.parentId,
+    });
+  }
+
   private async readTable(tab: string, requiredHeaders: string[]): Promise<SheetTable> {
     const response = await this.sheets.spreadsheets.values.get({
       spreadsheetId: this.spreadsheetId,
@@ -744,5 +936,159 @@ export class GoogleSheetsStore implements PandaWiseStore {
       score.changeFromPrevious = parseNumber(cell(row, "Change_From_Previous"));
     }
     return score;
+  }
+
+  private missionFromRow(row: SheetRow): Mission {
+    return {
+      id: cell(row, "Mission_ID"),
+      skillId: cell(row, "Skill_ID"),
+      ageGroupId: cell(row, "Age_Group_ID") as AgeGroupId,
+      name: cell(row, "Mission_Name"),
+      description: cell(row, "Mission_Description"),
+      difficulty: cell(row, "Difficulty_Level") as MissionDifficulty,
+      durationMinutes: parseNumber(cell(row, "Duration_Minutes")),
+      materialsNeeded: cell(row, "Materials_Needed") || "None",
+      parentGuidance: cell(row, "Parent_Guidance"),
+      childInstructions: cell(row, "Child_Instructions"),
+      learningOutcome: cell(row, "Learning_Outcome"),
+      points: parseNumber(cell(row, "Mission_Points")),
+      repeatable: parseBoolean(cell(row, "Repeatable_Flag")),
+      indoorOutdoor: (cell(row, "Indoor_Outdoor") || "BOTH") as Mission["indoorOutdoor"],
+      planEligibility: (cell(row, "Plan_Eligibility") || "ALL") as Mission["planEligibility"],
+      category: cell(row, "Mission_Category"),
+      displayOrder: parseNumber(cell(row, "Display_Order")),
+    };
+  }
+
+  private recommendationRuleFromRow(row: SheetRow): RecommendationRule {
+    return {
+      id: cell(row, "Rule_ID"),
+      ageGroupId: (cell(row, "Age_Group_ID") || "ALL") as RecommendationRule["ageGroupId"],
+      skillId: cell(row, "Skill_ID"),
+      minScore: parseNumber(cell(row, "Min_Score")),
+      maxScore: parseNumber(cell(row, "Max_Score")),
+      scoreBand: cell(row, "Score_Band") as ScoreBand,
+      priorityRank: parseNumber(cell(row, "Priority_Rank")),
+      recommendedDifficulty: cell(
+        row,
+        "Recommended_Difficulty",
+      ) as RecommendationRule["recommendedDifficulty"],
+      missionCategory: cell(row, "Mission_Category") || "ANY",
+      focusPercent: parseNumber(cell(row, "Focus_Percent")),
+      parentMessageTemplate: cell(row, "Parent_Message_Template"),
+      excludeCompletedWithinDays: parseNumber(cell(row, "Exclude_Completed_Within_Days"), 42),
+      minimumJourneyCompletionPercent: parseNumber(
+        cell(row, "Minimum_Journey_Completion_Percent"),
+        70,
+      ),
+    };
+  }
+
+  private journeyFromRow(row: SheetRow): Journey {
+    const journey: Journey = {
+      id: cell(row, "Journey_ID"),
+      childId: cell(row, "Child_ID"),
+      sourceAssessmentId: cell(row, "Source_Assessment_ID"),
+      planId: cell(row, "Plan_ID") as PlanId,
+      startDate: cell(row, "Start_Date"),
+      plannedEndDate: cell(row, "Planned_End_Date"),
+      status: cell(row, "Journey_Status") as Journey["status"],
+      currentDay: parseNumber(cell(row, "Current_Day"), 1),
+      missionsPlanned: parseNumber(cell(row, "Missions_Planned")),
+      missionsCompleted: parseNumber(cell(row, "Missions_Completed")),
+      completionPercent: parseNumber(cell(row, "Completion_Percent")),
+      reassessmentUnlocked: parseBoolean(cell(row, "Reassessment_Unlocked_Flag")),
+      createdAt: cell(row, "Created_At"),
+      updatedAt: cell(row, "Updated_At"),
+      version: cell(row, "Journey_Version") || "1.0",
+    };
+    if (cell(row, "Actual_End_Date")) journey.actualEndDate = cell(row, "Actual_End_Date");
+    return journey;
+  }
+
+  private journeyRecord(journey: Journey): Record<string, unknown> {
+    return {
+      Journey_ID: journey.id,
+      Child_ID: journey.childId,
+      Source_Assessment_ID: journey.sourceAssessmentId,
+      Plan_ID: journey.planId,
+      Start_Date: journey.startDate,
+      Planned_End_Date: journey.plannedEndDate,
+      Actual_End_Date: journey.actualEndDate ?? "",
+      Journey_Status: journey.status,
+      Current_Day: journey.currentDay,
+      Missions_Planned: journey.missionsPlanned,
+      Missions_Completed: journey.missionsCompleted,
+      Completion_Percent: journey.completionPercent,
+      Reassessment_Unlocked_Flag: journey.reassessmentUnlocked,
+      Created_At: journey.createdAt,
+      Updated_At: journey.updatedAt,
+      Journey_Version: journey.version,
+    };
+  }
+
+  private journeyScheduleFromRow(row: SheetRow): JourneySchedule {
+    const schedule: JourneySchedule = {
+      id: cell(row, "Schedule_ID"),
+      journeyId: cell(row, "Journey_ID"),
+      childId: cell(row, "Child_ID"),
+      missionId: cell(row, "Mission_ID"),
+      day: parseNumber(cell(row, "Journey_Day")),
+      week: parseNumber(cell(row, "Journey_Week")),
+      scheduledDate: cell(row, "Scheduled_Date"),
+      status: cell(row, "Schedule_Status") as JourneySchedule["status"],
+      unlocked: parseBoolean(cell(row, "Unlocked_Flag")),
+      prioritySource: cell(row, "Priority_Source"),
+      skillId: cell(row, "Skill_ID"),
+      generatedAt: cell(row, "Generated_At"),
+      createdBy: cell(row, "Created_By"),
+      updatedAt: cell(row, "Updated_At"),
+    };
+    if (cell(row, "Completion_ID")) schedule.completionId = cell(row, "Completion_ID");
+    if (cell(row, "Notes")) schedule.notes = cell(row, "Notes");
+    return schedule;
+  }
+
+  private journeyScheduleRecord(schedule: JourneySchedule): Record<string, unknown> {
+    return {
+      Schedule_ID: schedule.id,
+      Journey_ID: schedule.journeyId,
+      Child_ID: schedule.childId,
+      Mission_ID: schedule.missionId,
+      Journey_Day: schedule.day,
+      Journey_Week: schedule.week,
+      Scheduled_Date: schedule.scheduledDate,
+      Schedule_Status: schedule.status,
+      Unlocked_Flag: schedule.unlocked,
+      Priority_Source: schedule.prioritySource,
+      Skill_ID: schedule.skillId,
+      Completion_ID: schedule.completionId ?? "",
+      Generated_At: schedule.generatedAt,
+      Created_By: schedule.createdBy,
+      Updated_At: schedule.updatedAt,
+      Notes: schedule.notes ?? "",
+    };
+  }
+
+  private missionCompletionFromRow(row: SheetRow): MissionCompletion {
+    const completion: MissionCompletion = {
+      id: cell(row, "Completion_ID"),
+      journeyId: cell(row, "Journey_ID"),
+      scheduleId: cell(row, "Schedule_ID"),
+      childId: cell(row, "Child_ID"),
+      missionId: cell(row, "Mission_ID"),
+      status: cell(row, "Completion_Status") as MissionCompletionStatus,
+      enjoymentScore: parseNumber(cell(row, "Enjoyment_Score")),
+      difficultyFeedback: cell(row, "Difficulty_Feedback") as MissionDifficultyFeedback,
+      completedAt: cell(row, "Completed_At"),
+      pointsAwarded: parseNumber(cell(row, "Mission_Points_Awarded")),
+      streakDay: parseNumber(cell(row, "Streak_Day")),
+      submissionSource: "PARENT",
+      recordStatus: "Active",
+      createdAt: cell(row, "Created_At"),
+      updatedAt: cell(row, "Updated_At"),
+    };
+    if (cell(row, "Parent_Notes")) completion.parentNotes = cell(row, "Parent_Notes");
+    return completion;
   }
 }

@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: PandaWise API
-  version: 0.2.0
-  description: Sprint 1–2 contract for parent/child onboarding, discovery and GrowScore.
+  version: 0.3.0
+  description: Sprint 1–3 contract for onboarding, discovery, GrowScore and the 21-day journey.
 servers:
   - url: http://localhost:8080
 paths:
@@ -312,6 +312,121 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/GrowScoreReport" }
         "409": { description: Assessment is not complete. }
+  /v1/children/{childId}/journeys:
+    post:
+      operationId: createOrResumeJourney
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [focusSkillIds]
+              properties:
+                focusSkillIds:
+                  type: array
+                  minItems: 1
+                  maxItems: 3
+                  uniqueItems: true
+                  items: { type: string }
+      responses:
+        "201":
+          description: An explainable, plan-aware journey was generated or resumed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JourneyView" }
+        "409": { description: A completed Development Check and GrowScore are required. }
+        "503": { description: Active mission content is incomplete. }
+  /v1/children/{childId}/journeys/current:
+    get:
+      operationId: getCurrentJourney
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: childId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The current or latest journey with only the available daily mission visible.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JourneyView" }
+        "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/journeys/{journeyId}:
+    get:
+      operationId: getJourney
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: journeyId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Journey overview and current mission.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JourneyView" }
+        "404": { $ref: "#/components/responses/NotFoundError" }
+  /v1/journeys/{journeyId}/schedules/{scheduleId}/completion:
+    put:
+      operationId: submitMissionFeedback
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: journeyId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: scheduleId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, enjoymentScore, difficultyFeedback]
+              properties:
+                status: { enum: [YES, PARTIALLY, NO] }
+                enjoymentScore: { type: integer, minimum: 1, maximum: 5 }
+                difficultyFeedback: { enum: [TOO_EASY, JUST_RIGHT, CHALLENGING] }
+                parentNotes: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: Feedback saved and the next daily mission unlocked.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JourneyView" }
+        "409": { description: Mission is locked, already submitted or the journey is inactive. }
+  /v1/journeys/{journeyId}/weekly-summary/{week}:
+    get:
+      operationId: getWeeklyJourneySummary
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: journeyId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: week
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 3 }
+      responses:
+        "200":
+          description: Seven-day completion, enjoyment, points, streak and skill summary.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WeeklyJourneySummary" }
+        "409": { description: The seven daily check-ins are incomplete. }
 components:
   securitySchemes:
     bearerAuth:
@@ -552,6 +667,67 @@ components:
             visibleSkillCount: { type: integer }
             lockedSkillCount: { type: integer }
             planId: { enum: [PLN001, PLN002, PLN003] }
+    JourneyMission:
+      type: object
+      required: [id, skillId, name, description, difficulty, durationMinutes, parentGuidance, childInstructions]
+      properties:
+        id: { type: string }
+        skillId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        difficulty: { enum: [EASY, MEDIUM, HARD] }
+        durationMinutes: { type: integer, minimum: 1 }
+        materialsNeeded: { type: string }
+        parentGuidance: { type: string }
+        childInstructions: { type: string }
+        learningOutcome: { type: string }
+        points: { type: integer, minimum: 0 }
+        indoorOutdoor: { enum: [INDOOR, OUTDOOR, BOTH] }
+        category: { type: string }
+    JourneyView:
+      type: object
+      required: [journey, child, progress, schedules, today, reassessment]
+      properties:
+        journey:
+          type: object
+          required: [id, childId, status, currentDay, missionsPlanned, completionPercent, reassessmentUnlocked]
+          properties:
+            id: { type: string }
+            childId: { type: string }
+            status: { enum: [Active, Paused, Completed] }
+            currentDay: { type: integer, minimum: 1 }
+            missionsPlanned: { type: integer, minimum: 1 }
+            missionsCompleted: { type: integer, minimum: 0 }
+            completionPercent: { type: number, minimum: 0, maximum: 100 }
+            reassessmentUnlocked: { type: boolean }
+        child: { type: object, additionalProperties: true }
+        progress: { type: object, additionalProperties: true }
+        schedules:
+          type: array
+          items: { type: object, additionalProperties: true }
+        today:
+          type: [object, "null"]
+          properties:
+            scheduleId: { type: string }
+            day: { type: integer }
+            week: { type: integer }
+            reason: { type: array, items: { type: string } }
+            mission: { $ref: "#/components/schemas/JourneyMission" }
+        reassessment: { type: object, additionalProperties: true }
+    WeeklyJourneySummary:
+      type: object
+      required: [journeyId, week, days, completed, completionPercent, totalPoints, averageEnjoyment, streak, message]
+      properties:
+        journeyId: { type: string }
+        week: { type: integer, minimum: 1, maximum: 3 }
+        days: { type: integer, const: 7 }
+        completed: { type: integer, minimum: 0, maximum: 7 }
+        completionPercent: { type: number, minimum: 0, maximum: 100 }
+        totalPoints: { type: integer, minimum: 0 }
+        averageEnjoyment: { type: number, minimum: 1, maximum: 5 }
+        mostPracticedSkill: { type: [object, "null"], additionalProperties: true }
+        streak: { type: integer, minimum: 0 }
+        message: { type: string }
     ErrorResponse:
       type: object
       required: [error]

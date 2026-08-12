@@ -4,6 +4,7 @@ import 'package:pandawise_mobile/core/models/models.dart';
 import 'package:pandawise_mobile/core/session/session_controller.dart';
 import 'package:pandawise_mobile/core/theme/app_theme.dart';
 import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
+import 'package:pandawise_mobile/features/journey/journey_flow.dart';
 
 class PassionDiscoveryScreen extends StatefulWidget {
   const PassionDiscoveryScreen({
@@ -410,7 +411,11 @@ class AssessmentCompleteScreen extends StatelessWidget {
     }
     await Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute<void>(
-        builder: (_) => GrowScoreReportScreen(report: report, child: child),
+        builder: (_) => GrowScoreReportScreen(
+          report: report,
+          child: child,
+          session: session,
+        ),
       ),
     );
   }
@@ -452,10 +457,16 @@ class AssessmentCompleteScreen extends StatelessWidget {
 }
 
 class GrowScoreReportScreen extends StatelessWidget {
-  const GrowScoreReportScreen({required this.report, required this.child, super.key});
+  const GrowScoreReportScreen({
+    required this.report,
+    required this.child,
+    required this.session,
+    super.key,
+  });
 
   final GrowScoreReport report;
   final ChildProfile child;
+  final SessionController session;
 
   @override
   Widget build(BuildContext context) {
@@ -507,6 +518,7 @@ class GrowScoreReportScreen extends StatelessWidget {
                 builder: (_) => ParentFocusAreasScreen(
                   child: child,
                   areas: report.recommendedFocusAreas,
+                  session: session,
                 ),
               ),
             ),
@@ -519,10 +531,16 @@ class GrowScoreReportScreen extends StatelessWidget {
 }
 
 class ParentFocusAreasScreen extends StatefulWidget {
-  const ParentFocusAreasScreen({required this.child, required this.areas, super.key});
+  const ParentFocusAreasScreen({
+    required this.child,
+    required this.areas,
+    required this.session,
+    super.key,
+  });
 
   final ChildProfile child;
   final List<GrowScoreSkill> areas;
+  final SessionController session;
 
   @override
   State<ParentFocusAreasScreen> createState() => _ParentFocusAreasScreenState();
@@ -541,15 +559,32 @@ class _ParentFocusAreasScreenState extends State<ParentFocusAreasScreen> {
     });
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     if (_selected.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Choose at least one focus area.')),
       );
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.child.displayName}’s 21-day journey arrives in Sprint 3.')),
+    final JourneyView? journey = await widget.session.createJourney(
+      widget.child.id,
+      _selected.toList(growable: false),
+    );
+    if (!mounted) return;
+    if (journey == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.session.error ?? 'Please try again.')),
+      );
+      return;
+    }
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (_) => JourneyOverviewScreen(
+          child: widget.child,
+          session: widget.session,
+          initialJourney: journey,
+        ),
+      ),
     );
   }
 
@@ -595,7 +630,11 @@ class _ParentFocusAreasScreenState extends State<ParentFocusAreasScreen> {
             );
           }),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _continue, child: const Text('Build 21-Day Journey')),
+          PandaWiseLoadingButton(
+            label: 'Build 21-Day Journey',
+            onPressed: _continue,
+            loading: widget.session.busy,
+          ),
         ],
       ),
     );

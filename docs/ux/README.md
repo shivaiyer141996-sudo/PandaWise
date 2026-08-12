@@ -18,3 +18,8 @@ The approved interaction rules are:
 - No photo/video evidence in Release 1.0.
 - Avatar selection instead of child-profile uploads.
 - Pando encourages and celebrates without acting as a chatbot.
+
+Sprint 3 implements SCR-015 through SCR-018 in Flutter: Journey Overview, Today's
+Mission, Mission Completion and Weekly Summary. The journey tab lists eligible child
+journeys; schedule metadata is visible, while future mission content remains locked
+until the current daily feedback is submitted.

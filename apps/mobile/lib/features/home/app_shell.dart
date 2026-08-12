@@ -7,6 +7,7 @@ import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
 import 'package:pandawise_mobile/features/children/add_child_screen.dart';
 import 'package:pandawise_mobile/features/children/child_profile_screen.dart';
 import 'package:pandawise_mobile/features/discovery/discovery_flow.dart';
+import 'package:pandawise_mobile/features/journey/journey_flow.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.api, required this.session, super.key});
@@ -26,11 +27,7 @@ class _AppShellState extends State<AppShell> {
     final List<Widget> pages = <Widget>[
       _DashboardPage(api: widget.api, session: widget.session),
       _ChildrenPage(api: widget.api, session: widget.session),
-      const _PlannedPage(
-        title: 'Journey',
-        icon: Icons.route_rounded,
-        message: 'Your 21-day journey will appear after the Development Check.',
-      ),
+      JourneyTab(session: widget.session),
       const _PlannedPage(
         title: 'Progress',
         icon: Icons.insights_rounded,
@@ -321,7 +318,7 @@ class _ProfilePage extends StatelessWidget {
             label: const Text('Logout'),
           ),
           const SizedBox(height: 16),
-          const Text('PandaWise 0.2.0', textAlign: TextAlign.center),
+          const Text('PandaWise 0.3.0', textAlign: TextAlign.center),
         ],
       ),
     );

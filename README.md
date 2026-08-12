@@ -39,7 +39,10 @@ The core loop is:
   flows.
 - Sprint 2 implements Passion Discovery, Development Check auto-save/resume,
   versioned GrowScore, strengths-first reports and parent focus-area selection.
-- The 21-day journey remains intentionally sequenced into Sprint 3.
+- Sprint 3 implements explainable mission selection, the personalized 21-day
+  journey, one visible daily mission, lightweight feedback, weekly summaries,
+  streaks and the 70% reassessment gate.
+- Progress analytics and assessment comparison remain sequenced into Sprint 4.
 
 ## Local API
 

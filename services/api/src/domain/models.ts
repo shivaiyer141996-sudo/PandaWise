@@ -18,6 +18,11 @@ export type ScoreBand =
   | "AGE_APPROPRIATE"
   | "STRONG"
   | "EXCEPTIONAL";
+export type MissionDifficulty = "EASY" | "MEDIUM" | "HARD";
+export type MissionCompletionStatus = "YES" | "PARTIALLY" | "NO";
+export type MissionDifficultyFeedback = "TOO_EASY" | "JUST_RIGHT" | "CHALLENGING";
+export type JourneyStatus = "Active" | "Paused" | "Completed";
+export type JourneyScheduleStatus = "PLANNED" | "AVAILABLE" | "COMPLETED" | "SKIPPED";
 
 export interface Parent {
   id: string;
@@ -181,6 +186,107 @@ export interface SkillScore {
   changeFromPrevious?: number;
   calculatedAt: string;
   calculationVersion: string;
+}
+
+export interface Mission {
+  id: string;
+  skillId: string;
+  ageGroupId: AgeGroupId;
+  name: string;
+  description: string;
+  difficulty: MissionDifficulty;
+  durationMinutes: number;
+  materialsNeeded: string;
+  parentGuidance: string;
+  childInstructions: string;
+  learningOutcome: string;
+  points: number;
+  repeatable: boolean;
+  indoorOutdoor: "INDOOR" | "OUTDOOR" | "BOTH";
+  planEligibility: "ALL" | "GROWTH_AND_MASTERY" | "MASTERY";
+  category: string;
+  displayOrder: number;
+}
+
+export interface RecommendationRule {
+  id: string;
+  ageGroupId: AgeGroupId | "ALL";
+  skillId: string;
+  minScore: number;
+  maxScore: number;
+  scoreBand: ScoreBand;
+  priorityRank: number;
+  recommendedDifficulty:
+    | MissionDifficulty
+    | "EASY_TO_MEDIUM"
+    | "MEDIUM_TO_HARD";
+  missionCategory: string;
+  focusPercent: number;
+  parentMessageTemplate: string;
+  excludeCompletedWithinDays: number;
+  minimumJourneyCompletionPercent: number;
+}
+
+export interface JourneyConfiguration {
+  journeyDays: number;
+  reassessmentMinCompletionPercent: number;
+}
+
+export interface Journey {
+  id: string;
+  childId: string;
+  sourceAssessmentId: string;
+  planId: PlanId;
+  startDate: string;
+  plannedEndDate: string;
+  actualEndDate?: string;
+  status: JourneyStatus;
+  currentDay: number;
+  missionsPlanned: number;
+  missionsCompleted: number;
+  completionPercent: number;
+  reassessmentUnlocked: boolean;
+  createdAt: string;
+  updatedAt: string;
+  version: string;
+}
+
+export interface JourneySchedule {
+  id: string;
+  journeyId: string;
+  childId: string;
+  missionId: string;
+  day: number;
+  week: number;
+  scheduledDate: string;
+  status: JourneyScheduleStatus;
+  unlocked: boolean;
+  prioritySource: string;
+  skillId: string;
+  completionId?: string;
+  generatedAt: string;
+  createdBy: string;
+  updatedAt: string;
+  notes?: string;
+}
+
+export interface MissionCompletion {
+  id: string;
+  journeyId: string;
+  scheduleId: string;
+  childId: string;
+  missionId: string;
+  status: MissionCompletionStatus;
+  enjoymentScore: number;
+  difficultyFeedback: MissionDifficultyFeedback;
+  parentNotes?: string;
+  completedAt: string;
+  pointsAwarded: number;
+  streakDay: number;
+  submissionSource: "PARENT";
+  recordStatus: "Active";
+  createdAt: string;
+  updatedAt: string;
 }
 
 export function toPublicParent(parent: Parent): PublicParent {
