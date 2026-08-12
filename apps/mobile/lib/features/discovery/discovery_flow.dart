@@ -200,7 +200,7 @@ class DevelopmentCheckScreen extends StatelessWidget {
           PandaWiseCard(
             child: Column(
               children: <Widget>[
-                _CheckDetail(icon: Icons.schedule_rounded, label: 'About 10–15 minutes'),
+                const _CheckDetail(icon: Icons.schedule_rounded, label: 'About 10–15 minutes'),
                 const Divider(),
                 _CheckDetail(
                   icon: Icons.family_restroom_rounded,
