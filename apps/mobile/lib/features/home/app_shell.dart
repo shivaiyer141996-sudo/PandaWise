@@ -1,0 +1,371 @@
+import 'package:flutter/material.dart';
+import 'package:pandawise_mobile/core/api/pandawise_api.dart';
+import 'package:pandawise_mobile/core/models/models.dart';
+import 'package:pandawise_mobile/core/session/session_controller.dart';
+import 'package:pandawise_mobile/core/theme/app_theme.dart';
+import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
+import 'package:pandawise_mobile/features/children/add_child_screen.dart';
+import 'package:pandawise_mobile/features/children/child_profile_screen.dart';
+
+class AppShell extends StatefulWidget {
+  const AppShell({required this.api, required this.session, super.key});
+
+  final PandaWiseApi api;
+  final SessionController session;
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Widget> pages = <Widget>[
+      _DashboardPage(api: widget.api, session: widget.session),
+      _ChildrenPage(api: widget.api, session: widget.session),
+      const _PlannedPage(
+        title: 'Journey',
+        icon: Icons.route_rounded,
+        message: 'Your 21-day journey will appear after the Development Check.',
+      ),
+      const _PlannedPage(
+        title: 'Progress',
+        icon: Icons.insights_rounded,
+        message: 'GrowScore trends unlock as your family completes journeys.',
+      ),
+      _ProfilePage(session: widget.session),
+    ];
+
+    return Scaffold(
+      body: SafeArea(child: IndexedStack(index: _selectedIndex, children: pages)),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (int index) => setState(() => _selectedIndex = index),
+        destinations: const <NavigationDestination>[
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.child_care_outlined), selectedIcon: Icon(Icons.child_care), label: 'Children'),
+          NavigationDestination(icon: Icon(Icons.route_outlined), selectedIcon: Icon(Icons.route), label: 'Journey'),
+          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Progress'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardPage extends StatelessWidget {
+  const _DashboardPage({required this.api, required this.session});
+
+  final PandaWiseApi api;
+  final SessionController session;
+
+  @override
+  Widget build(BuildContext context) {
+    final ChildProfile? child = session.children.isEmpty ? null : session.children.first;
+    return CustomScrollView(
+      slivers: <Widget>[
+        SliverAppBar.large(
+          title: Text('Hi ${session.parent?.name.split(' ').first ?? 'there'} 👋'),
+          actions: <Widget>[
+            IconButton(
+              tooltip: 'Notifications',
+              onPressed: () => _showPlanned(context, 'Notification Centre arrives in Sprint 5.'),
+              icon: const Icon(Icons.notifications_none_rounded),
+            ),
+          ],
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+          sliver: SliverList.list(
+            children: <Widget>[
+              PandaWiseCard(
+                color: const Color(0xFFEFF6FF),
+                child: Row(
+                  children: <Widget>[
+                    const CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.pets_rounded, color: PandaWiseColors.blue),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text('Pando says', style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 4),
+                          Text(
+                            child == null
+                                ? 'Add your child to begin a thoughtful growth journey.'
+                                : child.assessmentStatus == 'Not Started'
+                                    ? 'Start ${child.displayName}’s Development Check when you are ready.'
+                                    : 'Small, consistent missions create meaningful progress.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (child == null)
+                _FirstChildCard(api: api, session: session)
+              else ...<Widget>[
+                Text('Your child', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                _ChildSummaryCard(child: child),
+                const SizedBox(height: 20),
+                Text('What’s next', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 12),
+                PandaWiseCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const Icon(Icons.explore_outlined, size: 42, color: PandaWiseColors.green),
+                      const SizedBox(height: 12),
+                      Text('Development Check', style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Understand strengths and growth opportunities through age-appropriate questions.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: () => _showPlanned(context, 'Development Check is sequenced into Sprint 2.'),
+                        child: const Text('Start Discovery'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FirstChildCard extends StatelessWidget {
+  const _FirstChildCard({required this.api, required this.session});
+
+  final PandaWiseApi api;
+  final SessionController session;
+
+  @override
+  Widget build(BuildContext context) {
+    return PandaWiseCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Icon(Icons.child_care_rounded, size: 48, color: PandaWiseColors.green),
+          const SizedBox(height: 12),
+          Text('Tell us about your child', style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+          const SizedBox(height: 8),
+          const Text('We use their age and family preferences to choose the right journey.', textAlign: TextAlign.center),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () => _openAddChild(context, api, session),
+            child: const Text('Add Child'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChildSummaryCard extends StatelessWidget {
+  const _ChildSummaryCard({required this.child});
+
+  final ChildProfile child;
+
+  @override
+  Widget build(BuildContext context) {
+    return PandaWiseCard(
+      onTap: () => Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (_) => ChildProfileScreen(child: child)),
+      ),
+      child: Row(
+        children: <Widget>[
+          CircleAvatar(
+            radius: 32,
+            backgroundColor: const Color(0xFFDCFCE7),
+            child: Text(child.avatarId == 'pando-star' ? '⭐' : '🐼', style: const TextStyle(fontSize: 28)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(child.displayName, style: Theme.of(context).textTheme.titleLarge),
+                Text('${child.ageYears} years • ${child.ageGroupId}'),
+                const SizedBox(height: 8),
+                Text(
+                  child.currentGrowScore == null
+                      ? 'Development Check not started'
+                      : 'GrowScore ${child.currentGrowScore!.round()}',
+                  style: const TextStyle(color: PandaWiseColors.blue, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChildrenPage extends StatelessWidget {
+  const _ChildrenPage({required this.api, required this.session});
+
+  final PandaWiseApi api;
+  final SessionController session;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Children')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openAddChild(context, api, session),
+        icon: const Icon(Icons.add),
+        label: const Text('Add Child'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: session.refreshChildren,
+        child: session.children.isEmpty
+            ? ListView(
+                padding: const EdgeInsets.all(24),
+                children: <Widget>[
+                  const SizedBox(height: 80),
+                  const Icon(Icons.child_care_rounded, size: 64, color: PandaWiseColors.green),
+                  const SizedBox(height: 16),
+                  Text('No child profiles yet', style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  const Text('Add a child to begin Passion Discovery and the Development Check.', textAlign: TextAlign.center),
+                ],
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                itemCount: session.children.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (BuildContext context, int index) =>
+                    _ChildSummaryCard(child: session.children[index]),
+              ),
+      ),
+    );
+  }
+}
+
+class _ProfilePage extends StatelessWidget {
+  const _ProfilePage({required this.session});
+
+  final SessionController session;
+
+  @override
+  Widget build(BuildContext context) {
+    final ParentProfile? parent = session.parent;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Profile')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: <Widget>[
+          PandaWiseCard(
+            child: Row(
+              children: <Widget>[
+                const CircleAvatar(radius: 30, child: Icon(Icons.person_rounded)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(parent?.name ?? '', style: Theme.of(context).textTheme.titleLarge),
+                      Text(parent?.email ?? ''),
+                      const SizedBox(height: 4),
+                      Text(_planName(parent?.subscriptionPlanId), style: const TextStyle(color: PandaWiseColors.green, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          PandaWiseCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: <Widget>[
+                ListTile(leading: const Icon(Icons.child_care_outlined), title: const Text('Children'), trailing: Text('${session.children.length}')),
+                const Divider(height: 1),
+                const ListTile(leading: Icon(Icons.translate_rounded), title: Text('Language'), trailing: Text('English')),
+                const Divider(height: 1),
+                const ListTile(leading: Icon(Icons.notifications_outlined), title: Text('Notifications'), trailing: Icon(Icons.chevron_right)),
+                const Divider(height: 1),
+                const ListTile(leading: Icon(Icons.shield_outlined), title: Text('Privacy & Terms'), trailing: Icon(Icons.chevron_right)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: session.logout,
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Logout'),
+          ),
+          const SizedBox(height: 16),
+          const Text('PandaWise 0.1.0', textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannedPage extends StatelessWidget {
+  const _PlannedPage({required this.title, required this.icon, required this.message});
+
+  final String title;
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 64, color: PandaWiseColors.blue),
+              const SizedBox(height: 16),
+              Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _openAddChild(
+  BuildContext context,
+  PandaWiseApi api,
+  SessionController session,
+) async {
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute<void>(builder: (_) => AddChildScreen(api: api, session: session)),
+  );
+}
+
+void _showPlanned(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+String _planName(String? planId) {
+  return switch (planId) {
+    'PLN002' => 'Growth Plan',
+    'PLN003' => 'Mastery Plan',
+    _ => 'Explorer Plan',
+  };
+}

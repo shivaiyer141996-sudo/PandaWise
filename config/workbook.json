@@ -1,0 +1,28 @@
+{
+  "spreadsheetId": "1ox11C3hz0pozmjM3bwk6vh99OHH4HPxknSD0tejJRDY",
+  "tabs": {
+    "parents": "01_Parent_Master",
+    "children": "02_Child_Master",
+    "schools": "03_School_Master",
+    "ageGroups": "04_Age_Group_Master",
+    "languages": "04_Language_Master",
+    "grades": "04_Grade_Master",
+    "skills": "05_Skill_Master",
+    "passions": "06_Passion_Master",
+    "questions": "07_Question_Master",
+    "questionOptions": "08_Question_Options",
+    "missions": "09_Mission_Master",
+    "recommendationRules": "10_Recommendation_Rules",
+    "missionScheduler": "11_Mission_Scheduler",
+    "assessments": "12_Child_Assessments",
+    "responses": "13_Child_Responses",
+    "skillScores": "14_Child_Skill_Scores",
+    "childPassions": "15_Child_Passions",
+    "journeys": "16_Journey_Tracker",
+    "missionCompletion": "17_Mission_Completion",
+    "subscriptions": "18_Subscription_Master",
+    "badges": "19_Badge_Master",
+    "configuration": "20_App_Configuration",
+    "audit": "21_Audit_Log"
+  }
+}
