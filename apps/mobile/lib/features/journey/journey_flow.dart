@@ -93,7 +93,7 @@ class _JourneyEmptyState extends StatelessWidget {
           children: <Widget>[
             const Icon(Icons.route_rounded, size: 64, color: PandaWiseColors.blue),
             const SizedBox(height: 16),
-            Text('Your 21-day journey starts after GrowScore',
+            Text('Your growth journey starts after GrowScore',
                 textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             const Text(
@@ -159,7 +159,7 @@ class _JourneyOverviewScreenState extends State<JourneyOverviewScreen> {
   Widget build(BuildContext context) {
     final double progress = (_journey.completionPercent / 100).clamp(0, 1).toDouble();
     return Scaffold(
-      appBar: AppBar(title: const Text('21-Day Journey')),
+      appBar: AppBar(title: Text('${_journey.missionsPlanned}-Day Journey')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: <Widget>[

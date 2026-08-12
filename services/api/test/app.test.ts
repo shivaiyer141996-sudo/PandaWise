@@ -78,9 +78,16 @@ async function seedAssessmentHistory(
   let updatedChild = child;
   for (const [index, growScore] of growScores.entries()) {
     const sequence = index + 1;
-    const timestamp = `2026-0${sequence + 1}-01T09:00:00.000Z`;
+    const timestamp = `${new Date().getUTCFullYear()}-0${sequence + 1}-01T09:00:00.000Z`;
     const assessmentId = `ASM-SEED-${sequence}`;
-    const scoreBand: ScoreBand = growScore >= 75 ? "STRONG" : "AGE_APPROPRIATE";
+    const scoreBand: ScoreBand =
+      growScore >= 75
+        ? "STRONG"
+        : growScore >= 60
+          ? "AGE_APPROPRIATE"
+          : growScore >= 40
+            ? "DEVELOPING"
+            : "PRIORITY_GROWTH_AREA";
     const assessment: Assessment = {
       id: assessmentId,
       childId: child.id,
@@ -423,7 +430,7 @@ describe("PandaWise API", () => {
     await app.close();
   });
 
-  it("builds an explainable 21-day journey with only today's mission visible", async () => {
+  it("builds an explainable plan-length journey with only today's mission visible", async () => {
     const now = new Date("2026-08-01T09:00:00.000Z");
     const app = await buildApp({
       environment: testEnvironment,
@@ -453,11 +460,11 @@ describe("PandaWise API", () => {
     expect(created.json().journey).toMatchObject({
       status: "Active",
       currentDay: 1,
-      missionsPlanned: 21,
+      missionsPlanned: 7,
       completionPercent: 0,
       reassessmentUnlocked: false,
     });
-    expect(created.json().schedules).toHaveLength(21);
+    expect(created.json().schedules).toHaveLength(7);
     expect(created.json().schedules.filter((schedule: { unlocked: boolean }) => schedule.unlocked)).toHaveLength(1);
     expect(created.json().today).toMatchObject({
       day: 1,
@@ -595,6 +602,17 @@ describe("PandaWise API", () => {
     });
     expect(view.today).toBeNull();
 
+    const scheduled = await store.listJourneySchedules(journeyId);
+    const missionIdsBySkill = new Map<string, Set<string>>();
+    for (const schedule of scheduled) {
+      const missionIds = missionIdsBySkill.get(schedule.skillId) ?? new Set<string>();
+      missionIds.add(schedule.missionId);
+      missionIdsBySkill.set(schedule.skillId, missionIds);
+    }
+    expect(
+      [...missionIdsBySkill.values()].every((missionIds) => missionIds.size <= 2),
+    ).toBe(true);
+
     const children = await app.inject({
       method: "GET",
       url: "/v1/children",
@@ -688,6 +706,241 @@ describe("PandaWise API", () => {
       sourceAssessmentId: "ASM-SEED-3",
       status: "Active",
       missionsPlanned: 21,
+    });
+    await app.close();
+  });
+
+  it("lists live-plan capabilities, changes plans manually and blocks an invalid downgrade", async () => {
+    const store = new MemoryStore();
+    const app = await buildApp({ environment: testEnvironment, store });
+    const { body } = await register(app, "plans@example.com");
+    const authorization = { authorization: `Bearer ${body.token}` };
+    await createChild(app, body.token);
+
+    const listed = await app.inject({
+      method: "GET",
+      url: "/v1/plans",
+      headers: authorization,
+    });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json()).toMatchObject({
+      currentPlanId: "PLN001",
+      billingMode: "MANUAL_V1",
+      paymentGatewayEnabled: false,
+    });
+    expect(listed.json().plans).toHaveLength(3);
+    expect(listed.json().plans[0]).toMatchObject({
+      planId: "PLN001",
+      includedAssessmentsPerYear: 1,
+      annualPriceInr: 0,
+      passionInsightsLevel: "Basic",
+      growScoreEnabled: true,
+      growthTimelineEnabled: false,
+    });
+    expect(listed.json().plans[1]).toMatchObject({
+      planId: "PLN002",
+      annualPriceInr: 1999,
+      recommended: true,
+    });
+
+    const upgraded = await app.inject({
+      method: "PUT",
+      url: "/v1/me/subscription",
+      headers: authorization,
+      payload: { planId: "PLN002" },
+    });
+    expect(upgraded.statusCode).toBe(200);
+    expect(upgraded.json().parent.subscriptionPlanId).toBe("PLN002");
+    await createChild(app, body.token, 6);
+    await createChild(app, body.token, 4);
+
+    const children = await app.inject({
+      method: "GET",
+      url: "/v1/children",
+      headers: authorization,
+    });
+    expect(children.json().children).toHaveLength(3);
+    expect(
+      children.json().children.every(
+        (child: { currentPlanId: string }) => child.currentPlanId === "PLN002",
+      ),
+    ).toBe(true);
+
+    const downgrade = await app.inject({
+      method: "PUT",
+      url: "/v1/me/subscription",
+      headers: authorization,
+      payload: { planId: "PLN001" },
+    });
+    expect(downgrade.statusCode).toBe(409);
+    await app.close();
+  });
+
+  it("enforces the live Explorer annual Development Check allowance", async () => {
+    const store = new MemoryStore();
+    const app = await buildApp({ environment: testEnvironment, store });
+    const { body } = await register(app, "annual-limit@example.com");
+    const { child } = await createChild(app, body.token);
+    const authorization = { authorization: `Bearer ${body.token}` };
+    await app.inject({
+      method: "PUT",
+      url: `/v1/children/${child.id}/passions`,
+      headers: authorization,
+      payload: { passionIds: ["PAS011"] },
+    });
+    const storedChild = await store.getChild(body.parent.id, child.id);
+    if (!storedChild) throw new Error("Test child was not found");
+    await seedAssessmentHistory(store, storedChild, [65]);
+    const [assessment] = await store.listAssessments(child.id);
+    const assessedChild = await store.getChild(body.parent.id, child.id);
+    if (!assessment || !assessedChild) throw new Error("Seeded assessment was not found");
+    await store.saveAssessmentResult(
+      assessment,
+      await store.listSkillScores(assessment.id),
+      { ...assessedChild, assessmentStatus: "Reassessment Due" },
+    );
+
+    const blocked = await app.inject({
+      method: "POST",
+      url: `/v1/children/${child.id}/assessments`,
+      headers: authorization,
+    });
+    expect(blocked.statusCode).toBe(403);
+    expect(blocked.json().error.code).toBe("ASSESSMENT_LIMIT_REACHED");
+    await app.close();
+  });
+
+  it("keeps marketing, notification and referral preferences independent", async () => {
+    const store = new MemoryStore();
+    const app = await buildApp({ environment: testEnvironment, store });
+    const first = await register(app, "referrer@example.com");
+    const second = await register(app, "settings@example.com");
+    const authorization = { authorization: `Bearer ${second.body.token}` };
+
+    const firstMe = await app.inject({
+      method: "GET",
+      url: "/v1/me",
+      headers: { authorization: `Bearer ${first.body.token}` },
+    });
+    const originalTerms = (await app.inject({
+      method: "GET",
+      url: "/v1/me",
+      headers: authorization,
+    })).json().parent.termsAcceptedAt as string;
+
+    const profile = await app.inject({
+      method: "PUT",
+      url: "/v1/me/profile",
+      headers: authorization,
+      payload: {
+        name: "Updated Parent",
+        parentType: "Guardian",
+        mobileNumber: "9876543211",
+        preferredLanguageId: "LNG002",
+        dailyTimeCommitment: "20_MIN",
+      },
+    });
+    expect(profile.statusCode).toBe(200);
+    expect(profile.json().parent).toMatchObject({
+      name: "Updated Parent",
+      preferredLanguageId: "LNG002",
+      dailyTimeCommitment: "20_MIN",
+      marketingConsent: false,
+    });
+
+    const whatsApp = await app.inject({
+      method: "PUT",
+      url: "/v1/me/notification-preferences",
+      headers: authorization,
+      payload: {
+        pushNotification: true,
+        emailNotification: true,
+        whatsAppNotification: true,
+        weeklySummary: false,
+        missionReminder: true,
+      },
+    });
+    expect(whatsApp.statusCode).toBe(409);
+    expect(whatsApp.json().error.code).toBe("WHATSAPP_NOT_AVAILABLE");
+
+    const weekly = await app.inject({
+      method: "PUT",
+      url: "/v1/me/notification-preferences",
+      headers: authorization,
+      payload: {
+        pushNotification: true,
+        emailNotification: true,
+        whatsAppNotification: false,
+        weeklySummary: true,
+        missionReminder: true,
+      },
+    });
+    expect(weekly.statusCode).toBe(403);
+    expect(weekly.json().error.code).toBe("WEEKLY_SUMMARY_REQUIRES_GROWTH");
+
+    const notifications = await app.inject({
+      method: "PUT",
+      url: "/v1/me/notification-preferences",
+      headers: authorization,
+      payload: {
+        pushNotification: true,
+        emailNotification: true,
+        whatsAppNotification: false,
+        weeklySummary: false,
+        missionReminder: true,
+      },
+    });
+    expect(notifications.statusCode).toBe(200);
+    expect(notifications.json().parent).toMatchObject({
+      pushNotification: true,
+      emailNotification: true,
+      missionReminder: true,
+      marketingConsent: false,
+    });
+
+    const consent = await app.inject({
+      method: "PUT",
+      url: "/v1/me/marketing-consent",
+      headers: authorization,
+      payload: { marketingConsent: true },
+    });
+    expect(consent.statusCode).toBe(200);
+    expect(consent.json()).toMatchObject({
+      parent: { marketingConsent: true },
+      termsAcceptedAt: originalTerms,
+    });
+
+    const referred = await app.inject({
+      method: "PUT",
+      url: "/v1/me/referral",
+      headers: authorization,
+      payload: { referralCode: firstMe.json().parent.referralCode as string },
+    });
+    expect(referred.statusCode).toBe(200);
+    expect(referred.json().parent).toMatchObject({ referralStatus: "Pending" });
+    const duplicateReferral = await app.inject({
+      method: "PUT",
+      url: "/v1/me/referral",
+      headers: authorization,
+      payload: { referralCode: firstMe.json().parent.referralCode as string },
+    });
+    expect(duplicateReferral.statusCode).toBe(409);
+
+    const centre = await app.inject({
+      method: "GET",
+      url: "/v1/notifications",
+      headers: authorization,
+    });
+    expect(centre.statusCode).toBe(200);
+    expect(centre.json().items[0]).toMatchObject({
+      type: "GET_STARTED",
+      action: "ADD_CHILD",
+    });
+    expect(centre.json().preferences).toMatchObject({
+      pushNotification: true,
+      emailNotification: true,
+      whatsAppNotification: false,
+      missionReminder: true,
     });
     await app.close();
   });

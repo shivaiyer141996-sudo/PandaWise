@@ -25,8 +25,9 @@ export class AuthService {
     }
 
     const timestamp = new Date().toISOString();
+    const parentId = createId("PAR");
     const parent: Parent = {
-      id: createId("PAR"),
+      id: parentId,
       name: input.name.trim(),
       parentType: input.parentType,
       mobileNumber: input.mobileNumber.trim(),
@@ -35,8 +36,15 @@ export class AuthService {
       subscriptionPlanId: "PLN001",
       preferredLanguageId: input.preferredLanguageId,
       dailyTimeCommitment: input.dailyTimeCommitment,
+      pushNotification: false,
+      emailNotification: false,
+      whatsAppNotification: false,
+      weeklySummary: false,
+      missionReminder: false,
       marketingConsent: input.marketingConsent,
       termsAcceptedAt: timestamp,
+      referralCode: `PW${parentId.slice(-8)}`,
+      referralStatus: "Not Applicable",
       accountStatus: "Active",
       createdAt: timestamp,
       updatedAt: timestamp,

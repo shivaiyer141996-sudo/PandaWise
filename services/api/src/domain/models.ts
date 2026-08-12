@@ -6,6 +6,12 @@ export type TimeCommitment =
   | "30_MIN"
   | "WEEKENDS_ONLY";
 export type PlanId = "PLN001" | "PLN002" | "PLN003";
+export type ReferralStatus =
+  | "Not Applicable"
+  | "Pending"
+  | "Qualified"
+  | "Rewarded"
+  | "Rejected";
 export type AgeGroupId = "AG01" | "AG02" | "AG03";
 export type Gender = "Boy" | "Girl" | "Prefer Not to Say";
 export type RespondentType = "PARENT" | "CHILD";
@@ -34,8 +40,18 @@ export interface Parent {
   subscriptionPlanId: PlanId;
   preferredLanguageId: string;
   dailyTimeCommitment: TimeCommitment;
+  pushNotification: boolean;
+  emailNotification: boolean;
+  whatsAppNotification: boolean;
+  weeklySummary: boolean;
+  missionReminder: boolean;
   marketingConsent: boolean;
   termsAcceptedAt: string;
+  referralCode: string;
+  referredBy?: string;
+  referralStatus: ReferralStatus;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
   accountStatus: "Active" | "Inactive" | "Locked" | "Pending Activation";
   lastLoginAt?: string;
   createdAt: string;
@@ -51,6 +67,18 @@ export interface PublicParent {
   subscriptionPlanId: PlanId;
   preferredLanguageId: string;
   dailyTimeCommitment: TimeCommitment;
+  pushNotification: boolean;
+  emailNotification: boolean;
+  whatsAppNotification: boolean;
+  weeklySummary: boolean;
+  missionReminder: boolean;
+  marketingConsent: boolean;
+  termsAcceptedAt: string;
+  referralCode: string;
+  referredBy?: string;
+  referralStatus: ReferralStatus;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
 }
 
 export interface Child {
@@ -235,17 +263,30 @@ export interface JourneyConfiguration {
 export interface PlanEntitlements {
   planId: PlanId;
   planName: string;
+  positioning: string;
+  monthlyPriceInr: number;
+  annualPriceInr: number;
   maxChildren: number | null;
   includedAssessmentsPerYear: number;
   questionCount: number;
   skillsVisible: number;
   missionsPerSkill: number;
+  journeyLengthDays: number;
+  passionInsightsLevel: string;
+  growScoreEnabled: boolean;
   growthTrackerEnabled: boolean;
+  growthTimelineEnabled: boolean;
   assessmentHistoryAccess: "Latest Only" | "Full";
   assessmentComparison: "None" | "Latest vs Previous" | "Full History";
   weeklySummaryEnabled: boolean;
   monthlyReportEnabled: boolean;
   advancedAnalyticsEnabled: boolean;
+  parentGuidanceLevel: string;
+  prioritySupport: string;
+  reportExport: string;
+  multiLanguageLevel: string;
+  displayOrder: number;
+  recommended: boolean;
 }
 
 export interface Journey {
@@ -315,5 +356,19 @@ export function toPublicParent(parent: Parent): PublicParent {
     subscriptionPlanId: parent.subscriptionPlanId,
     preferredLanguageId: parent.preferredLanguageId,
     dailyTimeCommitment: parent.dailyTimeCommitment,
+    pushNotification: parent.pushNotification,
+    emailNotification: parent.emailNotification,
+    whatsAppNotification: parent.whatsAppNotification,
+    weeklySummary: parent.weeklySummary,
+    missionReminder: parent.missionReminder,
+    marketingConsent: parent.marketingConsent,
+    termsAcceptedAt: parent.termsAcceptedAt,
+    referralCode: parent.referralCode,
+    referralStatus: parent.referralStatus,
+    ...(parent.referredBy ? { referredBy: parent.referredBy } : {}),
+    ...(parent.subscriptionStartDate
+      ? { subscriptionStartDate: parent.subscriptionStartDate }
+      : {}),
+    ...(parent.subscriptionEndDate ? { subscriptionEndDate: parent.subscriptionEndDate } : {}),
   };
 }

@@ -9,6 +9,7 @@ import 'package:pandawise_mobile/features/children/child_profile_screen.dart';
 import 'package:pandawise_mobile/features/discovery/discovery_flow.dart';
 import 'package:pandawise_mobile/features/journey/journey_flow.dart';
 import 'package:pandawise_mobile/features/progress/progress_flow.dart';
+import 'package:pandawise_mobile/features/settings/settings_flow.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({required this.api, required this.session, super.key});
@@ -30,7 +31,7 @@ class _AppShellState extends State<AppShell> {
       _ChildrenPage(api: widget.api, session: widget.session),
       JourneyTab(session: widget.session),
       ProgressTab(api: widget.api, session: widget.session),
-      _ProfilePage(session: widget.session),
+      ProfileTab(api: widget.api, session: widget.session),
     ];
 
     return Scaffold(
@@ -66,7 +67,11 @@ class _DashboardPage extends StatelessWidget {
           actions: <Widget>[
             IconButton(
               tooltip: 'Notifications',
-              onPressed: () => _showPlanned(context, 'Notification Centre arrives in Sprint 5.'),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => NotificationCentreScreen(session: session),
+                ),
+              ),
               icon: const Icon(Icons.notifications_none_rounded),
             ),
           ],
@@ -261,67 +266,6 @@ class _ChildrenPage extends StatelessWidget {
   }
 }
 
-class _ProfilePage extends StatelessWidget {
-  const _ProfilePage({required this.session});
-
-  final SessionController session;
-
-  @override
-  Widget build(BuildContext context) {
-    final ParentProfile? parent = session.parent;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: <Widget>[
-          PandaWiseCard(
-            child: Row(
-              children: <Widget>[
-                const CircleAvatar(radius: 30, child: Icon(Icons.person_rounded)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(parent?.name ?? '', style: Theme.of(context).textTheme.titleLarge),
-                      Text(parent?.email ?? ''),
-                      const SizedBox(height: 4),
-                      Text(_planName(parent?.subscriptionPlanId), style: const TextStyle(color: PandaWiseColors.green, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          PandaWiseCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: <Widget>[
-                ListTile(leading: const Icon(Icons.child_care_outlined), title: const Text('Children'), trailing: Text('${session.children.length}')),
-                const Divider(height: 1),
-                const ListTile(leading: Icon(Icons.translate_rounded), title: Text('Language'), trailing: Text('English')),
-                const Divider(height: 1),
-                const ListTile(leading: Icon(Icons.notifications_outlined), title: Text('Notifications'), trailing: Icon(Icons.chevron_right)),
-                const Divider(height: 1),
-                const ListTile(leading: Icon(Icons.shield_outlined), title: Text('Privacy & Terms'), trailing: Icon(Icons.chevron_right)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: session.logout,
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Logout'),
-          ),
-          const SizedBox(height: 16),
-          const Text('PandaWise 0.4.0', textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-}
-
 Future<void> _openAddChild(
   BuildContext context,
   PandaWiseApi api,
@@ -343,16 +287,4 @@ Future<void> _openDiscovery(
       builder: (_) => PassionDiscoveryScreen(api: api, session: session, child: child),
     ),
   );
-}
-
-void _showPlanned(BuildContext context, String message) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-}
-
-String _planName(String? planId) {
-  return switch (planId) {
-    'PLN002' => 'Growth Plan',
-    'PLN003' => 'Mastery Plan',
-    _ => 'Explorer Plan',
-  };
 }

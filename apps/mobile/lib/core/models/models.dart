@@ -3,8 +3,21 @@ class ParentProfile {
     required this.id,
     required this.name,
     required this.email,
+    required this.parentType,
+    required this.mobileNumber,
     required this.subscriptionPlanId,
+    required this.preferredLanguageId,
     required this.dailyTimeCommitment,
+    required this.pushNotification,
+    required this.emailNotification,
+    required this.whatsAppNotification,
+    required this.weeklySummary,
+    required this.missionReminder,
+    required this.marketingConsent,
+    required this.termsAcceptedAt,
+    required this.referralCode,
+    required this.referralStatus,
+    this.referredBy,
   });
 
   factory ParentProfile.fromJson(Map<String, dynamic> json) {
@@ -12,16 +25,42 @@ class ParentProfile {
       id: json['id'] as String,
       name: json['name'] as String,
       email: json['email'] as String,
+      parentType: json['parentType'] as String,
+      mobileNumber: json['mobileNumber'] as String,
       subscriptionPlanId: json['subscriptionPlanId'] as String,
+      preferredLanguageId: json['preferredLanguageId'] as String,
       dailyTimeCommitment: json['dailyTimeCommitment'] as String,
+      pushNotification: json['pushNotification'] as bool,
+      emailNotification: json['emailNotification'] as bool,
+      whatsAppNotification: json['whatsAppNotification'] as bool,
+      weeklySummary: json['weeklySummary'] as bool,
+      missionReminder: json['missionReminder'] as bool,
+      marketingConsent: json['marketingConsent'] as bool,
+      termsAcceptedAt: json['termsAcceptedAt'] as String,
+      referralCode: json['referralCode'] as String,
+      referredBy: json['referredBy'] as String?,
+      referralStatus: json['referralStatus'] as String,
     );
   }
 
   final String id;
   final String name;
   final String email;
+  final String parentType;
+  final String mobileNumber;
   final String subscriptionPlanId;
+  final String preferredLanguageId;
   final String dailyTimeCommitment;
+  final bool pushNotification;
+  final bool emailNotification;
+  final bool whatsAppNotification;
+  final bool weeklySummary;
+  final bool missionReminder;
+  final bool marketingConsent;
+  final String termsAcceptedAt;
+  final String referralCode;
+  final String? referredBy;
+  final String referralStatus;
 }
 
 class ChildProfile {
@@ -757,4 +796,159 @@ class ChildProgressView {
   final List<SkillProgressTrend> skillTrends;
   final List<AssessmentHistoryItem> assessmentHistory;
   final ProgressActions actions;
+}
+
+class PlanOption {
+  const PlanOption({
+    required this.planId,
+    required this.planName,
+    required this.positioning,
+    required this.monthlyPriceInr,
+    required this.annualPriceInr,
+    required this.includedAssessmentsPerYear,
+    required this.questionCount,
+    required this.skillsVisible,
+    required this.missionsPerSkill,
+    required this.journeyLengthDays,
+    required this.passionInsightsLevel,
+    required this.growScoreEnabled,
+    required this.growthTrackerEnabled,
+    required this.growthTimelineEnabled,
+    required this.assessmentHistoryAccess,
+    required this.assessmentComparison,
+    required this.weeklySummaryEnabled,
+    required this.monthlyReportEnabled,
+    required this.advancedAnalyticsEnabled,
+    required this.parentGuidanceLevel,
+    required this.prioritySupport,
+    required this.reportExport,
+    required this.multiLanguageLevel,
+    required this.displayOrder,
+    required this.recommended,
+    this.maxChildren,
+  });
+
+  factory PlanOption.fromJson(Map<String, dynamic> json) {
+    return PlanOption(
+      planId: json['planId'] as String,
+      planName: json['planName'] as String,
+      positioning: json['positioning'] as String,
+      monthlyPriceInr: json['monthlyPriceInr'] as int,
+      annualPriceInr: json['annualPriceInr'] as int,
+      maxChildren: json['maxChildren'] as int?,
+      includedAssessmentsPerYear: json['includedAssessmentsPerYear'] as int,
+      questionCount: json['questionCount'] as int,
+      skillsVisible: json['skillsVisible'] as int,
+      missionsPerSkill: json['missionsPerSkill'] as int,
+      journeyLengthDays: json['journeyLengthDays'] as int,
+      passionInsightsLevel: json['passionInsightsLevel'] as String,
+      growScoreEnabled: json['growScoreEnabled'] as bool,
+      growthTrackerEnabled: json['growthTrackerEnabled'] as bool,
+      growthTimelineEnabled: json['growthTimelineEnabled'] as bool,
+      assessmentHistoryAccess: json['assessmentHistoryAccess'] as String,
+      assessmentComparison: json['assessmentComparison'] as String,
+      weeklySummaryEnabled: json['weeklySummaryEnabled'] as bool,
+      monthlyReportEnabled: json['monthlyReportEnabled'] as bool,
+      advancedAnalyticsEnabled: json['advancedAnalyticsEnabled'] as bool,
+      parentGuidanceLevel: json['parentGuidanceLevel'] as String,
+      prioritySupport: json['prioritySupport'] as String,
+      reportExport: json['reportExport'] as String,
+      multiLanguageLevel: json['multiLanguageLevel'] as String,
+      displayOrder: json['displayOrder'] as int,
+      recommended: json['recommended'] as bool,
+    );
+  }
+
+  final String planId;
+  final String planName;
+  final String positioning;
+  final int monthlyPriceInr;
+  final int annualPriceInr;
+  final int? maxChildren;
+  final int includedAssessmentsPerYear;
+  final int questionCount;
+  final int skillsVisible;
+  final int missionsPerSkill;
+  final int journeyLengthDays;
+  final String passionInsightsLevel;
+  final bool growScoreEnabled;
+  final bool growthTrackerEnabled;
+  final bool growthTimelineEnabled;
+  final String assessmentHistoryAccess;
+  final String assessmentComparison;
+  final bool weeklySummaryEnabled;
+  final bool monthlyReportEnabled;
+  final bool advancedAnalyticsEnabled;
+  final String parentGuidanceLevel;
+  final String prioritySupport;
+  final String reportExport;
+  final String multiLanguageLevel;
+  final int displayOrder;
+  final bool recommended;
+}
+
+class PlanCatalogue {
+  const PlanCatalogue({required this.currentPlanId, required this.plans});
+
+  factory PlanCatalogue.fromJson(Map<String, dynamic> json) {
+    return PlanCatalogue(
+      currentPlanId: json['currentPlanId'] as String,
+      plans: (json['plans'] as List<dynamic>)
+          .map((dynamic value) => PlanOption.fromJson(value as Map<String, dynamic>))
+          .toList(growable: false),
+    );
+  }
+
+  final String currentPlanId;
+  final List<PlanOption> plans;
+}
+
+class PandaWiseNotification {
+  const PandaWiseNotification({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.message,
+    required this.action,
+    required this.createdAt,
+    this.childId,
+  });
+
+  factory PandaWiseNotification.fromJson(Map<String, dynamic> json) {
+    return PandaWiseNotification(
+      id: json['id'] as String,
+      type: json['type'] as String,
+      title: json['title'] as String,
+      message: json['message'] as String,
+      action: json['action'] as String,
+      createdAt: json['createdAt'] as String,
+      childId: json['childId'] as String?,
+    );
+  }
+
+  final String id;
+  final String type;
+  final String title;
+  final String message;
+  final String action;
+  final String createdAt;
+  final String? childId;
+}
+
+class NotificationCentre {
+  const NotificationCentre({required this.items});
+
+  factory NotificationCentre.fromJson(Map<String, dynamic> json) {
+    return NotificationCentre(
+      items: (json['items'] as List<dynamic>)
+          .map(
+            (dynamic value) => PandaWiseNotification.fromJson(
+              value as Map<String, dynamic>,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  final List<PandaWiseNotification> items;
 }

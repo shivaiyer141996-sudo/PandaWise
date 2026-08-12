@@ -8,6 +8,7 @@ import { GoogleSheetsStore } from "./repositories/google-sheets-store.js";
 import { MemoryStore } from "./repositories/memory-store.js";
 import type { PandaWiseStore } from "./repositories/store.js";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerAccountRoutes } from "./routes/account.js";
 import { registerAssessmentRoutes } from "./routes/assessments.js";
 import { registerBootstrapRoutes } from "./routes/bootstrap.js";
 import { registerChildRoutes } from "./routes/children.js";
@@ -46,11 +47,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.get("/health", async () => ({
     status: "ok",
     service: "pandawise-api",
-    version: "0.4.0",
+    version: "0.5.0",
   }));
 
   await registerBootstrapRoutes(app, store);
   await registerAuthRoutes(app, store, environment);
+  await registerAccountRoutes(app, store);
   await registerChildRoutes(app, store);
   await registerAssessmentRoutes(app, store);
   await registerJourneyRoutes(app, store, options.now);

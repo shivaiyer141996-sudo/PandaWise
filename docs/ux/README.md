@@ -28,3 +28,8 @@ Sprint 4 implements SCR-019 through SCR-021: Growth Dashboard, Skill Analytics a
 Assessment History. Assessment growth and mission activity are presented as separate
 concepts, while plan-locked analytics explain the available upgrade outcome without
 using judgmental language.
+
+Sprint 5 implements SCR-022 through SCR-025: Subscription Plans, Notification
+Centre, Profile and Settings. Plan selection is explicitly manual and does not imply
+payment collection. WhatsApp is visibly future-only, and optional marketing consent
+is shown separately from the accepted Terms and Privacy Policy.

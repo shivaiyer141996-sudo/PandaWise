@@ -44,7 +44,10 @@ The core loop is:
   streaks and the 70% reassessment gate.
 - Sprint 4 implements a plan-aware Progress dashboard, skill trends, Development
   Check history, reassessment actions and new-journey generation after reassessment.
-- Commercial preferences and manual plan controls remain sequenced into Sprint 5.
+- Sprint 5 implements manual V1 plan selection, live-master commercial limits,
+  notification centre/preferences, parent settings, independent marketing consent
+  and referral handling.
+- Release regression, accessibility and operational hardening remain in Sprint 6.
 
 ## Local API
 

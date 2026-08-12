@@ -5,7 +5,7 @@ Status: Implemented on `agent/sprint-3-journey`
 | Requirement | API / implementation | Automated evidence |
 |---|---|---|
 | Parent chooses 1–3 GrowScore focus areas | `POST /v1/children/{childId}/journeys` | Rejects invalid focus sets; journey test uses parent priorities |
-| Generate an explainable 21-day schedule | `JourneyService.create`; Mission, Recommendation Rule and App Configuration masters | Asserts 21 schedules, parent-focus reason and deterministic age/plan selection |
+| Generate an explainable plan-length schedule | `JourneyService.create`; Mission, Recommendation Rule, Subscription and App Configuration masters | Asserts seven Explorer schedules and 21 Growth/Mastery schedules with deterministic age/plan selection |
 | Use age, score band, focus, passion, time and history | `JourneyService.chooseMission` and stored `Priority_Source` | Asserts age/plan duration fit, unique initial rotation and explainability |
 | Exclude recent/completed missions when alternatives exist | `recentMissionIds` plus selection penalties | Asserts unique first skill rotation; service preserves exclusion reason |
 | Expose only one daily mission | Journey view returns content only under `today`; future schedules expose metadata only | Asserts exactly one unlocked schedule and current mission |
@@ -26,5 +26,5 @@ Status: Implemented on `agent/sprint-3-journey`
 | SCR-018 Weekly Summary | `WeeklySummaryScreen` |
 
 The mobile app receives no Google credentials and accesses every journey operation
-through the authenticated API. Mission content, rules and journey thresholds remain
-configuration-driven through the master workbook.
+through the authenticated API. Mission content, rules, 7/21-day plan length and
+journey thresholds remain configuration-driven through the master workbook.
