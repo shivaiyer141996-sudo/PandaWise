@@ -1,54 +1,41 @@
-# PandaWise Release 1.0 Pilot Checklist
+# PandaWise Sprint 11 release checklist
 
 ## Automated gates
 
-- [x] Release candidate API typecheck, build and parent-journey regression pass.
-- [x] Release candidate Flutter analysis, widget, accessibility and resilience tests pass.
-- [x] Dependency audit and full-history Gitleaks gates exist.
-- [ ] Sprint 10 `npm run pilot:readiness` passes for the exact PR commit.
-- [ ] Sprint 10 API, Flutter and security jobs pass in GitHub Actions.
-- [ ] Pilot APK, SHA-256, Flutter version and manifest are retained together.
+- [x] Apps Script syntax, architecture and contract tests pass locally.
+- [x] Repository secret-pattern scan passes locally.
+- [ ] Apps Script, Flutter and security jobs pass for the exact PR commit.
+- [ ] Functional Android job uses the real deployed `/exec` URL.
+- [ ] APK, SHA-256, Flutter version, manifest and source ZIP are retained together.
 
-## Google Sheets readiness
+## Google Apps Script and Sheets
 
-- [x] Header-driven mapping, controlled schema errors and transient retry/backoff exist.
-- [x] A dated native rehearsal copy preserves all 23 source tabs.
-- [x] Bounded header/master reads passed on the rehearsal copy.
-- [x] Ten active skill weights total 100; plan assessment limits are 2/6/12 and
-  every active plan has a 21-day journey.
-- [ ] Sequential/concurrent API reads and one disposable fictional journey pass.
-- [ ] A restricted `.xlsx` backup destination is approved and recorded.
-- [ ] Monitoring owners and alert thresholds are assigned.
+- [x] Live master/config rows required by Sprint 11 are present and validated.
+- [ ] `PANDAWISE_SPREADSHEET_ID` and a new `PANDAWISE_AUTH_SECRET` are Script Properties.
+- [ ] `verifyPandaWiseDeployment` returns healthy readiness and non-zero master counts.
+- [ ] Web App executes as the authorized owner and access is set to Anyone.
+- [ ] Health, readiness and bootstrap browser checks return JSON `ok:true`.
+- [ ] Register/login/child/assessment/journey/report writes appear immediately.
+- [ ] Three consecutive readiness checks and one synthetic full journey pass.
+- [ ] A dated native backup and rollback owner are recorded.
 
-Rehearsal workbook:
-[PandaWise Masters - Sprint 10 Pilot Rehearsal - 2026-08-13](https://docs.google.com/spreadsheets/d/1x5y3dREaGkdXPEKHU41dz0nThKMHLMeqW9IGdj7l2p4/edit)
+## Functional acceptance
 
-The live PandaWise Masters workbook was not written during the structural rehearsal.
+- [ ] Register and login work with a newly created fictional account.
+- [ ] Child creation uses Chennai School Master dropdown values only.
+- [ ] Assessment autosaves, Save & Exit works, and resume restores progress.
+- [ ] Offline answer, mission and profile edits sync after reconnection.
+- [ ] Explorer/Growth/Mastery visibility matches Subscription Master.
+- [ ] GrowScore reports, dashboard and progress are derived from Sheets.
+- [ ] Ages below 3, above 12 and the 12–15 group remain unavailable.
 
-## Environment and data
+## Android and decision
 
-- [ ] Store a production/pilot JWT secret of at least 32 random characters.
-- [ ] Restrict HTTPS origins and workbook access to named pilot operators.
-- [ ] Point the pilot API only to the copied workbook.
-- [ ] Verify `/health` and three consecutive `/ready` responses.
-- [ ] Confirm logs omit passwords, tokens, credentials and family PII.
+- [ ] APK checksum matches `sprint-11-manifest.txt` and it installs successfully.
+- [ ] Full fictional-data UAT passes on representative Android devices.
+- [ ] No critical/high defect remains open.
+- [ ] CPO/Product Owner approves evidence and Release 1 scope.
+- [ ] Release owner records commit, workflow run, checksum, rollback and decision date.
 
-## Android pilot artifact
-
-- [ ] GitHub Actions builds `pandawise-1.0.0-pilot-android`.
-- [ ] APK checksum matches `pilot-manifest.txt`.
-- [ ] Manifest commit, workflow run and non-secret API URL match the test environment.
-- [ ] APK installs on representative Android devices.
-- [ ] Critical smoke flow passes: login, child, assessment, GrowScore, journey,
-  Mission feedback, progress and settings.
-
-The CI APK is debug-signed for controlled testing only. Public distribution requires
-protected release signing, Play review and an approved production API environment.
-
-## Human acceptance and decision
-
-- [ ] All 37 UAT cases have results and evidence.
-- [ ] No critical or high-severity defect remains open.
-- [ ] CPO/Product Owner approves Release 1.0 scope and pilot evidence.
-- [ ] Release owner records commit, workflow run, checksum and rollback owner.
-- [ ] Go/no-go decision is dated and signed.
+The debug APK is for controlled testing. Public distribution requires protected
+release signing, store review and approved privacy/operations controls.

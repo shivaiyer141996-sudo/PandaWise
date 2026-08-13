@@ -1,40 +1,42 @@
-# Release 1.0 Security Review
+# Release 1.0 security review
 
-Status: no known critical or high findings in the Release 1.0 candidate.
+Status: Sprint 11 source controls implemented; deployed Web App and device checks
+remain launch gates.
 
-## Controls verified
+## Controls implemented
 
-- Parent routes require JWT authentication, and child/assessment/journey reads are
-  ownership-scoped. Cross-parent regression tests expect `404` rather than disclosing
-  resource existence.
-- Passwords are bcrypt-hashed with cost 12; password hashes never enter public models.
-- API logs redact `Authorization`; generic `500` responses do not expose provider
-  errors, credentials or workbook content.
-- Google service-account JSON and JWT secrets are deployment-only environment
-  secrets. `.env`, private keys and service-account files are ignored by Git.
-- Flutter stores the parent token in platform secure storage and contains no Google
-  credential or sheet access path.
-- Request validation constrains email/password/body sizes and Release 1.0 enums.
-- Marketing consent is separate from terms acceptance; notification channels are
-  independently controlled.
-- CI runs `npm audit --audit-level=high` and a full-history Gitleaks scan. At review
-  time, `npm audit` reports 0 vulnerabilities across 281 dependencies.
-- Third-party CI actions used for the secret scan and APK upload are commit-pinned.
+- Parent-owned resources are authorized from an HMAC-signed, expiring token subject.
+- Passwords use a random salt, SHA-256 and a server-only auth secret; only the hash
+  format is written to `Password_Hash` and public models omit it.
+- Apps Script errors expose stable codes/messages, never stack traces, tokens,
+  secrets or workbook values.
+- `PANDAWISE_AUTH_SECRET` and spreadsheet configuration are Script Properties, not
+  Sheet cells, GitHub source, Dart defines or APK assets.
+- Flutter uses secure storage for the parent token and clears account-scoped offline
+  mutations on logout.
+- Inputs, ownership, active status, master values and plan entitlements are validated
+  in Apps Script before writes.
+- Marketing consent is independent from Terms; notification channels are independent.
+- ScriptLock protects mutations; assessment history is append-only and latest-answer
+  reads make autosave/resume deterministic.
+- CI runs the static/contract suite, npm audit, repository secret scan and Gitleaks.
 
-## Accepted Release 1.0 constraints
+## Accepted controlled-pilot constraints
 
-- Manual subscription selection is a product pilot control, not a payment system.
-- Forgot-password is enumeration-safe but requires a production mail/token service
-  before public account recovery can be enabled.
-- The Android CI artifact is debug-signed and intended only for internal testing.
-  Production Play signing and the real API base URL remain deployment responsibilities.
-- Google Sheets is suitable for the approved V1 scale only. The repository interface
-  preserves a migration path to a transactional database.
+- The Web App transport is accessible to anyone so an APK can register/login;
+  private logical routes still require a valid token.
+- Manual plan selection is a pilot control, not a payment system.
+- Forgot-password is enumeration-safe but delivery/reset tokens are not implemented;
+  public recovery remains blocked.
+- The CI APK is debug-signed for controlled device testing only.
+- Apps Script/Sheets quotas and locking limit scale; measure them before expansion.
+- Pre-Sprint 11 bcrypt hashes require authorized reset/re-registration.
 
 ## Launch-blocking checks
 
-- No Google or JWT credential may appear in Git history, APK contents or logs.
-- Production must use a non-development JWT secret, restrictive CORS origins and a
-  TLS API URL.
-- Play Console/App Signing ownership, privacy disclosures, retention rules and child
-  data deletion procedures require named operational owners before public launch.
+- No secret, token, password, family PII or live-data export in source/history/logs.
+- Deploy as the workbook owner/editor with a new 32+ character auth secret.
+- Verify cross-parent resource requests do not disclose existence.
+- Verify registration writes a `sha256$...` value and never a plain password.
+- Assign owners for privacy disclosures, retention, child-data deletion and rollback.
+- Use protected production signing and store ownership before public distribution.

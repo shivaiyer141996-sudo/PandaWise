@@ -1,0 +1,15 @@
+{
+  "scriptId": "REPLACE_WITH_APPS_SCRIPT_PROJECT_ID",
+  "rootDir": ".",
+  "filePushOrder": [
+    "00_Config.gs",
+    "01_ErrorsAndUtils.gs",
+    "02_SheetStore.gs",
+    "03_Auth.gs",
+    "04_MasterAndProfiles.gs",
+    "05_Assessments.gs",
+    "06_JourneysAndProgress.gs",
+    "07_Router.gs",
+    "Code.gs"
+  ]
+}

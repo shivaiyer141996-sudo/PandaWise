@@ -10,9 +10,8 @@ Describe the user-visible or architectural outcome.
 
 ## Verification
 
-- [ ] API typecheck
-- [ ] API tests
-- [ ] API build
+- [ ] Apps Script syntax/contract checks
+- [ ] Apps Script deployment guide updated when needed
 - [ ] Flutter analyze
 - [ ] Flutter tests
 - [ ] No secrets or child/parent PII committed

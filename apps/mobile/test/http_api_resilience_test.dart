@@ -11,24 +11,35 @@ void main() {
   test('retries safe GET requests after transient server responses', () async {
     int attempts = 0;
     final MockClient client = MockClient((http.Request request) async {
+      final Map<String, dynamic> envelope =
+          jsonDecode(request.body) as Map<String, dynamic>;
+      expect(request.method, 'POST');
+      expect(envelope['route'], '/v1/notifications');
+      expect(envelope['method'], 'GET');
       attempts += 1;
       if (attempts < 3) {
         return http.Response(
           jsonEncode(<String, Object>{
-            'error': <String, String>{'code': 'TEMPORARY', 'message': 'Please retry'},
+            'error': <String, String>{
+              'code': 'TEMPORARY',
+              'message': 'Please retry',
+            },
           }),
           503,
         );
       }
       return http.Response(
         jsonEncode(<String, Object>{
-          'items': <Object>[],
-          'preferences': <String, bool>{
-            'pushNotification': false,
-            'emailNotification': false,
-            'whatsAppNotification': false,
-            'weeklySummary': false,
-            'missionReminder': false,
+          'ok': true,
+          'data': <String, Object>{
+            'items': <Object>[],
+            'preferences': <String, bool>{
+              'pushNotification': false,
+              'emailNotification': false,
+              'whatsAppNotification': false,
+              'weeklySummary': false,
+              'missionReminder': false,
+            },
           },
         }),
         200,
@@ -36,7 +47,7 @@ void main() {
     });
     final HttpPandaWiseApi api = HttpPandaWiseApi(
       client: client,
-      baseUrl: 'https://example.test',
+      baseUrl: 'https://script.google.com/macros/s/test-deployment/exec',
       initialRetryDelay: Duration.zero,
     );
 
@@ -52,22 +63,29 @@ void main() {
       attempts += 1;
       return http.Response(
         jsonEncode(<String, Object>{
-          'error': <String, String>{'code': 'TEMPORARY', 'message': 'Please retry'},
+          'ok': false,
+          'error': <String, String>{
+            'code': 'TEMPORARY',
+            'message': 'Please retry',
+          },
         }),
         503,
       );
     });
     final HttpPandaWiseApi api = HttpPandaWiseApi(
       client: client,
-      baseUrl: 'https://example.test',
+      baseUrl: 'https://script.google.com/macros/s/test-deployment/exec',
       initialRetryDelay: Duration.zero,
     );
 
     await expectLater(
       api.updateMarketingConsent('token', true),
       throwsA(
-        isA<PandaWiseApiException>()
-            .having((PandaWiseApiException error) => error.code, 'code', 'TEMPORARY'),
+        isA<PandaWiseApiException>().having(
+          (PandaWiseApiException error) => error.code,
+          'code',
+          'TEMPORARY',
+        ),
       ),
     );
     expect(attempts, 1);
@@ -75,45 +93,58 @@ void main() {
 
   test('maps corrupted JSON to a stable invalid-response error', () async {
     final MockClient client = MockClient(
-      (http.Request request) async => http.Response('<html>bad gateway</html>', 200),
+      (http.Request request) async =>
+          http.Response('<html>bad gateway</html>', 200),
     );
     final HttpPandaWiseApi api = HttpPandaWiseApi(
       client: client,
-      baseUrl: 'https://example.test',
+      baseUrl: 'https://script.google.com/macros/s/test-deployment/exec',
       initialRetryDelay: Duration.zero,
     );
 
     await expectLater(
       api.getMe('token'),
       throwsA(
-        isA<PandaWiseApiException>()
-            .having((PandaWiseApiException error) => error.code, 'code', 'INVALID_RESPONSE'),
+        isA<PandaWiseApiException>().having(
+          (PandaWiseApiException error) => error.code,
+          'code',
+          'INVALID_RESPONSE',
+        ),
       ),
     );
   });
 
-  test('times out a stalled request with a recoverable network message', () async {
-    final Completer<http.Response> stalled = Completer<http.Response>();
-    final MockClient client = MockClient((http.Request request) => stalled.future);
-    final HttpPandaWiseApi api = HttpPandaWiseApi(
-      client: client,
-      baseUrl: 'https://example.test',
-      requestTimeout: const Duration(milliseconds: 5),
-      initialRetryDelay: Duration.zero,
-      maxGetAttempts: 1,
-    );
+  test(
+    'times out a stalled request with a recoverable network message',
+    () async {
+      final Completer<http.Response> stalled = Completer<http.Response>();
+      final MockClient client = MockClient(
+        (http.Request request) => stalled.future,
+      );
+      final HttpPandaWiseApi api = HttpPandaWiseApi(
+        client: client,
+        baseUrl: 'https://script.google.com/macros/s/test-deployment/exec',
+        requestTimeout: const Duration(milliseconds: 5),
+        initialRetryDelay: Duration.zero,
+        maxGetAttempts: 1,
+      );
 
-    await expectLater(
-      api.getMe('token'),
-      throwsA(
-        isA<PandaWiseApiException>()
-            .having((PandaWiseApiException error) => error.code, 'code', 'NETWORK_ERROR')
-            .having(
-              (PandaWiseApiException error) => error.message,
-              'message',
-              contains('try again'),
-            ),
-      ),
-    );
-  });
+      await expectLater(
+        api.getMe('token'),
+        throwsA(
+          isA<PandaWiseApiException>()
+              .having(
+                (PandaWiseApiException error) => error.code,
+                'code',
+                'NETWORK_ERROR',
+              )
+              .having(
+                (PandaWiseApiException error) => error.message,
+                'message',
+                contains('try again'),
+              ),
+        ),
+      );
+    },
+  );
 }

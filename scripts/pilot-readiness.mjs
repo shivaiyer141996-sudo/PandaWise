@@ -7,13 +7,17 @@ const failures = [];
 
 const requiredEvidence = [
   ".github/workflows/ci.yml",
-  "contracts/openapi.yaml",
-  "docs/operations/google-sheets-runbook.md",
+  "contracts/apps-script-api.md",
+  "services/apps-script/Code.gs",
+  "services/apps-script/appsscript.json",
+  "apps/mobile/lib/core/config/config.dart",
+  "docs/operations/apps-script-deployment-guide.md",
   "docs/release/pilot-defect-log.md",
   "docs/release/pilot-release-plan.md",
   "docs/release/pilot-uat-checklist.md",
   "docs/release/release-checklist.md",
   "docs/sprint-6-traceability.md",
+  "docs/sprint-11-traceability.md",
 ];
 
 if (currentNodeMajor < minimumNodeMajor) {
@@ -35,8 +39,9 @@ for (const marker of [
   "flutter analyze",
   "flutter test",
   "flutter build apk --debug",
+  "PANDAWISE_APPS_SCRIPT_URL",
   "app-debug.apk.sha256",
-  "pilot-manifest.txt",
+  "sprint-11-manifest.txt",
 ]) {
   if (!ciWorkflow.includes(marker)) {
     failures.push(`CI workflow is missing pilot requirement: ${marker}`);
@@ -50,7 +55,7 @@ if (failures.length > 0) {
 
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 const gates = [
-  ["API typecheck, tests and build", ["run", "check"]],
+  ["Apps Script syntax and contract tests", ["run", "check"]],
   ["Dependency audit", ["run", "audit"]],
   ["Repository secret-pattern scan", ["run", "security:scan"]],
 ];
@@ -73,5 +78,5 @@ for (const [label, args] of gates) {
 }
 
 process.stdout.write(
-  "\nPilot local readiness passed. Flutter, APK and device UAT remain CI/environment gates.\n",
+  "\nSprint 11 local readiness passed. Flutter, deployed Web App, APK and device UAT remain environment gates.\n",
 );

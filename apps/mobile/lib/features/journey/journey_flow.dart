@@ -30,17 +30,25 @@ class JourneyTab extends StatelessWidget {
                     children: <Widget>[
                       const CircleAvatar(
                         backgroundColor: Color(0xFFDCFCE7),
-                        child: Icon(Icons.route_rounded, color: PandaWiseColors.green),
+                        child: Icon(
+                          Icons.route_rounded,
+                          color: PandaWiseColors.green,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text(child.displayName, style: Theme.of(context).textTheme.titleMedium),
-                            Text(child.journeyStatus == 'Not Started'
-                                ? 'Choose focus areas from the GrowScore report'
-                                : '${child.journeyStatus} • ${child.currentStreak}-day streak'),
+                            Text(
+                              child.displayName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              child.journeyStatus == 'Not Started'
+                                  ? 'Choose focus areas from the GrowScore report'
+                                  : '${child.journeyStatus} • ${child.currentStreak}-day streak',
+                            ),
                           ],
                         ),
                       ),
@@ -91,10 +99,17 @@ class _JourneyEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(Icons.route_rounded, size: 64, color: PandaWiseColors.blue),
+            const Icon(
+              Icons.route_rounded,
+              size: 64,
+              color: PandaWiseColors.blue,
+            ),
             const SizedBox(height: 16),
-            Text('Your growth journey starts after GrowScore',
-                textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Your growth journey starts after GrowScore',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             const Text(
               'Complete Passion Discovery and the Development Check, then choose parent focus areas.',
@@ -146,18 +161,23 @@ class _JourneyOverviewScreenState extends State<JourneyOverviewScreen> {
     if (!mounted) return;
     if (summary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.session.error ?? 'Complete this week first.')),
+        SnackBar(
+          content: Text(widget.session.error ?? 'Complete this week first.'),
+        ),
       );
       return;
     }
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => WeeklySummaryScreen(summary: summary)),
+      MaterialPageRoute<void>(
+        builder: (_) => WeeklySummaryScreen(summary: summary),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final double progress = (_journey.completionPercent / 100).clamp(0, 1).toDouble();
+    final double progress =
+        (_journey.completionPercent / 100).clamp(0, 1).toDouble();
     return Scaffold(
       appBar: AppBar(title: Text('${_journey.missionsPlanned}-Day Journey')),
       body: ListView(
@@ -168,49 +188,84 @@ class _JourneyOverviewScreenState extends State<JourneyOverviewScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('${widget.child.displayName}’s growth journey',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  '${widget.child.displayName}’s growth journey',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 12),
                 LinearProgressIndicator(value: progress, minHeight: 10),
                 const SizedBox(height: 10),
-                Text('Day ${_journey.currentDay} of ${_journey.missionsPlanned}'),
-                Text('${_journey.missionsCompleted} missions completed • '
-                    '${_journey.completionPercent.toStringAsFixed(0)}% completion'),
+                Text(
+                  'Day ${_journey.currentDay} of ${_journey.missionsPlanned}',
+                ),
+                Text(
+                  '${_journey.missionsCompleted} missions completed • '
+                  '${_journey.completionPercent.toStringAsFixed(0)}% completion',
+                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
           Row(
             children: <Widget>[
-              Expanded(child: _StatCard(icon: Icons.local_fire_department_rounded, value: '${_journey.streak}', label: 'Streak')),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.local_fire_department_rounded,
+                  value: '${_journey.streak}',
+                  label: 'Streak',
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _StatCard(icon: Icons.calendar_month_rounded, value: '${(_journey.currentDay - 1) ~/ 7 + 1}', label: 'Week')),
+              Expanded(
+                child: _StatCard(
+                  icon: Icons.calendar_month_rounded,
+                  value: '${(_journey.currentDay - 1) ~/ 7 + 1}',
+                  label: 'Week',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
           if (_journey.today != null) ...<Widget>[
-            Text('Today’s Mission', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Today’s Mission',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 12),
             PandaWiseCard(
               onTap: _openToday,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(_journey.today!.mission.name, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    _journey.today!.mission.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 6),
                   Text(_journey.today!.mission.description),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     children: <Widget>[
-                      Chip(label: Text('${_journey.today!.mission.durationMinutes} min')),
-                      Chip(label: Text(_journey.today!.mission.difficulty.toLowerCase())),
+                      Chip(
+                        label: Text(
+                          '${_journey.today!.mission.durationMinutes} min',
+                        ),
+                      ),
+                      Chip(
+                        label: Text(
+                          _journey.today!.mission.difficulty.toLowerCase(),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton(onPressed: _openToday, child: const Text('View Today’s Mission')),
+                    child: FilledButton(
+                      onPressed: _openToday,
+                      child: const Text('View Today’s Mission'),
+                    ),
                   ),
                 ],
               ),
@@ -220,9 +275,16 @@ class _JourneyOverviewScreenState extends State<JourneyOverviewScreen> {
               color: const Color(0xFFDCFCE7),
               child: Column(
                 children: <Widget>[
-                  const Icon(Icons.celebration_rounded, size: 48, color: PandaWiseColors.green),
+                  const Icon(
+                    Icons.celebration_rounded,
+                    size: 48,
+                    color: PandaWiseColors.green,
+                  ),
                   const SizedBox(height: 12),
-                  Text('Journey complete!', style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    'Journey complete!',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     _journey.reassessmentUnlocked
@@ -238,9 +300,16 @@ class _JourneyOverviewScreenState extends State<JourneyOverviewScreen> {
               color: const Color(0xFFEFF6FF),
               child: Column(
                 children: <Widget>[
-                  const Icon(Icons.check_circle_rounded, size: 48, color: PandaWiseColors.green),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 48,
+                    color: PandaWiseColors.green,
+                  ),
                   const SizedBox(height: 12),
-                  Text('Today’s mission is complete', style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    'Today’s mission is complete',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 8),
                   const Text(
                     'Celebrate the effort. The next mission will unlock on its scheduled day.',
@@ -250,13 +319,17 @@ class _JourneyOverviewScreenState extends State<JourneyOverviewScreen> {
               ),
             ),
           const SizedBox(height: 20),
-          Text('Weekly reflections', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Weekly reflections',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           for (int week = 1; week <= 3; week += 1)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: OutlinedButton.icon(
-                onPressed: _journey.currentDay > week * 7 || _journey.status == 'Completed'
+                onPressed: _journey.currentDay > week * 7 ||
+                        _journey.status == 'Completed'
                     ? () => _openWeeklySummary(week)
                     : null,
                 icon: const Icon(Icons.insights_rounded),
@@ -294,7 +367,10 @@ class TodayMissionScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(today.mission.name, style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  today.mission.name,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 10),
                 Text(today.mission.description),
                 const SizedBox(height: 14),
@@ -303,29 +379,45 @@ class TodayMissionScreen extends StatelessWidget {
                   children: <Widget>[
                     Chip(label: Text('${today.mission.durationMinutes} min')),
                     Chip(label: Text(today.mission.difficulty.toLowerCase())),
-                    Chip(label: Text(today.mission.indoorOutdoor.toLowerCase())),
+                    Chip(
+                      label: Text(today.mission.indoorOutdoor.toLowerCase()),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          _DetailCard(title: 'For ${child.displayName}', text: today.mission.childInstructions),
+          _DetailCard(
+            title: 'For ${child.displayName}',
+            text: today.mission.childInstructions,
+          ),
           const SizedBox(height: 12),
-          _DetailCard(title: 'Parent guidance', text: today.mission.parentGuidance),
+          _DetailCard(
+            title: 'Parent guidance',
+            text: today.mission.parentGuidance,
+          ),
           const SizedBox(height: 12),
           _DetailCard(title: 'Materials', text: today.mission.materialsNeeded),
           const SizedBox(height: 12),
-          _DetailCard(title: 'Why this mission?', text: today.reasons.join(' • ')),
+          _DetailCard(
+            title: 'Why this mission?',
+            text: today.reasons.join(' • '),
+          ),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: () async {
-              final JourneyView? updated = await Navigator.of(context).push<JourneyView>(
+              final JourneyView? updated =
+                  await Navigator.of(context).push<JourneyView>(
                 MaterialPageRoute<JourneyView>(
-                  builder: (_) => MissionCompletionScreen(session: session, journey: journey),
+                  builder: (_) => MissionCompletionScreen(
+                    session: session,
+                    journey: journey,
+                  ),
                 ),
               );
-              if (context.mounted && updated != null) Navigator.of(context).pop(updated);
+              if (context.mounted && updated != null)
+                Navigator.of(context).pop(updated);
             },
             child: const Text('Share Mission Feedback'),
           ),
@@ -336,20 +428,33 @@ class TodayMissionScreen extends StatelessWidget {
 }
 
 class MissionCompletionScreen extends StatefulWidget {
-  const MissionCompletionScreen({required this.session, required this.journey, super.key});
+  const MissionCompletionScreen({
+    required this.session,
+    required this.journey,
+    super.key,
+  });
 
   final SessionController session;
   final JourneyView journey;
 
   @override
-  State<MissionCompletionScreen> createState() => _MissionCompletionScreenState();
+  State<MissionCompletionScreen> createState() =>
+      _MissionCompletionScreenState();
 }
 
 class _MissionCompletionScreenState extends State<MissionCompletionScreen> {
   final TextEditingController _notes = TextEditingController();
-  String _status = 'YES';
-  String _difficulty = 'JUST_RIGHT';
-  int _enjoyment = 4;
+  String? _status;
+  String? _difficulty;
+  late int _enjoyment;
+
+  @override
+  void initState() {
+    super.initState();
+    _enjoyment =
+        ((widget.journey.enjoymentMin + widget.journey.enjoymentMax) / 2)
+            .round();
+  }
 
   @override
   void dispose() {
@@ -358,11 +463,19 @@ class _MissionCompletionScreenState extends State<MissionCompletionScreen> {
   }
 
   Future<void> _submit() async {
+    if (_status == null || _difficulty == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Choose the mission result and difficulty.'),
+        ),
+      );
+      return;
+    }
     final JourneyView? updated = await widget.session.completeMission(
       widget.journey,
-      status: _status,
+      status: _status!,
       enjoymentScore: _enjoyment,
-      difficultyFeedback: _difficulty,
+      difficultyFeedback: _difficulty!,
       parentNotes: _notes.text,
     );
     if (!mounted) return;
@@ -382,37 +495,51 @@ class _MissionCompletionScreenState extends State<MissionCompletionScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: <Widget>[
-          Text('How did today’s mission go?', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'How did today’s mission go?',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 18),
-          SegmentedButton<String>(
-            segments: const <ButtonSegment<String>>[
-              ButtonSegment<String>(value: 'YES', label: Text('Yes')),
-              ButtonSegment<String>(value: 'PARTIALLY', label: Text('Partially')),
-              ButtonSegment<String>(value: 'NO', label: Text('Not today')),
-            ],
-            selected: <String>{_status},
-            onSelectionChanged: (Set<String> value) => setState(() => _status = value.first),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.journey.completionStatuses
+                .map(
+                  (String value) => ChoiceChip(
+                    label: Text(_feedbackLabel(value)),
+                    selected: _status == value,
+                    onSelected: (_) => setState(() => _status = value),
+                  ),
+                )
+                .toList(growable: false),
           ),
           const SizedBox(height: 24),
           Text('Enjoyment', style: Theme.of(context).textTheme.titleMedium),
           Slider(
             value: _enjoyment.toDouble(),
-            min: 1,
-            max: 5,
-            divisions: 4,
-            label: '$_enjoyment of 5',
-            onChanged: (double value) => setState(() => _enjoyment = value.round()),
+            min: widget.journey.enjoymentMin.toDouble(),
+            max: widget.journey.enjoymentMax.toDouble(),
+            divisions:
+                widget.journey.enjoymentMax - widget.journey.enjoymentMin,
+            label: '$_enjoyment of ${widget.journey.enjoymentMax}',
+            onChanged: (double value) =>
+                setState(() => _enjoyment = value.round()),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _difficulty,
-            decoration: const InputDecoration(labelText: 'How did the difficulty feel?'),
-            items: const <DropdownMenuItem<String>>[
-              DropdownMenuItem<String>(value: 'TOO_EASY', child: Text('A little easy')),
-              DropdownMenuItem<String>(value: 'JUST_RIGHT', child: Text('Just right')),
-              DropdownMenuItem<String>(value: 'CHALLENGING', child: Text('A good challenge')),
-            ],
-            onChanged: (String? value) => setState(() => _difficulty = value ?? 'JUST_RIGHT'),
+            decoration: const InputDecoration(
+              labelText: 'How did the difficulty feel?',
+            ),
+            items: widget.journey.difficultyOptions
+                .map(
+                  (String value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(_feedbackLabel(value)),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (String? value) => setState(() => _difficulty = value),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -436,6 +563,13 @@ class _MissionCompletionScreenState extends State<MissionCompletionScreen> {
   }
 }
 
+String _feedbackLabel(String value) {
+  final String normalized = value.toLowerCase().replaceAll('_', ' ');
+  return normalized.isEmpty
+      ? value
+      : '${normalized[0].toUpperCase()}${normalized.substring(1)}';
+}
+
 class WeeklySummaryScreen extends StatelessWidget {
   const WeeklySummaryScreen({required this.summary, super.key});
 
@@ -452,26 +586,41 @@ class WeeklySummaryScreen extends StatelessWidget {
             color: const Color(0xFFDCFCE7),
             child: Column(
               children: <Widget>[
-                const Icon(Icons.celebration_rounded, size: 48, color: PandaWiseColors.green),
+                const Icon(
+                  Icons.celebration_rounded,
+                  size: 48,
+                  color: PandaWiseColors.green,
+                ),
                 const SizedBox(height: 12),
-                Text('${summary.completed} missions completed',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  '${summary.completed} missions completed',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 6),
                 Text(summary.message, textAlign: TextAlign.center),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          _DetailCard(title: 'Completion', text: '${summary.completionPercent.toStringAsFixed(0)}%'),
+          _DetailCard(
+            title: 'Completion',
+            text: '${summary.completionPercent.toStringAsFixed(0)}%',
+          ),
           const SizedBox(height: 12),
           _DetailCard(title: 'Points earned', text: '${summary.totalPoints}'),
           const SizedBox(height: 12),
-          _DetailCard(title: 'Average enjoyment', text: '${summary.averageEnjoyment.toStringAsFixed(1)} of 5'),
+          _DetailCard(
+            title: 'Average enjoyment',
+            text: '${summary.averageEnjoyment.toStringAsFixed(1)} of 5',
+          ),
           const SizedBox(height: 12),
           _DetailCard(title: 'Current streak', text: '${summary.streak} days'),
           if (summary.mostPracticedSkill != null) ...<Widget>[
             const SizedBox(height: 12),
-            _DetailCard(title: 'Most practised skill', text: summary.mostPracticedSkill!),
+            _DetailCard(
+              title: 'Most practised skill',
+              text: summary.mostPracticedSkill!,
+            ),
           ],
         ],
       ),
@@ -480,7 +629,11 @@ class WeeklySummaryScreen extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.icon, required this.value, required this.label});
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
 
   final IconData icon;
   final String value;

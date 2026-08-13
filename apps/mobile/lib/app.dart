@@ -18,11 +18,34 @@ class PandaWiseApp extends StatefulWidget {
   State<PandaWiseApp> createState() => _PandaWiseAppState();
 }
 
-class _PandaWiseAppState extends State<PandaWiseApp> {
+class _PandaWiseAppState extends State<PandaWiseApp>
+    with WidgetsBindingObserver {
+  static const Duration _syncInterval = Duration(seconds: 30);
+  Timer? _syncTimer;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(widget.session.restore());
+    _syncTimer = Timer.periodic(
+      _syncInterval,
+      (Timer _) => unawaited(widget.session.syncPendingChanges()),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(widget.session.syncPendingChanges());
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

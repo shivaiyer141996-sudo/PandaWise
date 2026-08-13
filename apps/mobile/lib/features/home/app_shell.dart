@@ -35,16 +35,39 @@ class _AppShellState extends State<AppShell> {
     ];
 
     return Scaffold(
-      body: SafeArea(child: IndexedStack(index: _selectedIndex, children: pages)),
+      body: SafeArea(
+        child: IndexedStack(index: _selectedIndex, children: pages),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (int index) => setState(() => _selectedIndex = index),
+        onDestinationSelected: (int index) =>
+            setState(() => _selectedIndex = index),
         destinations: const <NavigationDestination>[
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.child_care_outlined), selectedIcon: Icon(Icons.child_care), label: 'Children'),
-          NavigationDestination(icon: Icon(Icons.route_outlined), selectedIcon: Icon(Icons.route), label: 'Journey'),
-          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Progress'),
-          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.child_care_outlined),
+            selectedIcon: Icon(Icons.child_care),
+            label: 'Children',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.route_outlined),
+            selectedIcon: Icon(Icons.route),
+            label: 'Journey',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights),
+            label: 'Progress',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );
@@ -59,11 +82,14 @@ class _DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ChildProfile? child = session.children.isEmpty ? null : session.children.first;
+    final ChildProfile? child =
+        session.children.isEmpty ? null : session.children.first;
     return CustomScrollView(
       slivers: <Widget>[
         SliverAppBar.large(
-          title: Text('Hi ${session.parent?.name.split(' ').first ?? 'there'} 👋'),
+          title: Text(
+            'Hi ${session.parent?.name.split(' ').first ?? 'there'} 👋',
+          ),
           actions: <Widget>[
             IconButton(
               tooltip: 'Notifications',
@@ -87,14 +113,20 @@ class _DashboardPage extends StatelessWidget {
                     const CircleAvatar(
                       radius: 28,
                       backgroundColor: Colors.white,
-                      child: Icon(Icons.pets_rounded, color: PandaWiseColors.blue),
+                      child: Icon(
+                        Icons.pets_rounded,
+                        color: PandaWiseColors.blue,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('Pando says', style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            'Pando says',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                           const SizedBox(height: 4),
                           Text(
                             child == null
@@ -113,19 +145,33 @@ class _DashboardPage extends StatelessWidget {
               if (child == null)
                 _FirstChildCard(api: api, session: session)
               else ...<Widget>[
-                Text('Your child', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'Your child',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 12),
                 _ChildSummaryCard(api: api, session: session, child: child),
                 const SizedBox(height: 20),
-                Text('What’s next', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'What’s next',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 12),
                 PandaWiseCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const Icon(Icons.explore_outlined, size: 42, color: PandaWiseColors.green),
+                      const Icon(
+                        Icons.explore_outlined,
+                        size: 42,
+                        color: PandaWiseColors.green,
+                      ),
                       const SizedBox(height: 12),
-                      Text('Development Check', style: Theme.of(context).textTheme.titleMedium, textAlign: TextAlign.center),
+                      Text(
+                        'Development Check',
+                        style: Theme.of(context).textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: 8),
                       const Text(
                         'Understand strengths and growth opportunities through age-appropriate questions.',
@@ -133,7 +179,8 @@ class _DashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       FilledButton(
-                        onPressed: () => _openDiscovery(context, api, session, child),
+                        onPressed: () =>
+                            _openDiscovery(context, api, session, child),
                         child: const Text('Start Discovery'),
                       ),
                     ],
@@ -160,11 +207,22 @@ class _FirstChildCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const Icon(Icons.child_care_rounded, size: 48, color: PandaWiseColors.green),
+          const Icon(
+            Icons.child_care_rounded,
+            size: 48,
+            color: PandaWiseColors.green,
+          ),
           const SizedBox(height: 12),
-          Text('Tell us about your child', style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+          Text(
+            'Tell us about your child',
+            style: Theme.of(context).textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 8),
-          const Text('We use their age and family preferences to choose the right journey.', textAlign: TextAlign.center),
+          const Text(
+            'We use their age and family preferences to choose the right journey.',
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: () => _openAddChild(context, api, session),
@@ -177,7 +235,11 @@ class _FirstChildCard extends StatelessWidget {
 }
 
 class _ChildSummaryCard extends StatelessWidget {
-  const _ChildSummaryCard({required this.api, required this.session, required this.child});
+  const _ChildSummaryCard({
+    required this.api,
+    required this.session,
+    required this.child,
+  });
 
   final PandaWiseApi api;
   final SessionController session;
@@ -188,29 +250,36 @@ class _ChildSummaryCard extends StatelessWidget {
     return PandaWiseCard(
       onTap: () => Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => ChildProfileScreen(api: api, session: session, child: child),
+          builder: (_) =>
+              ChildProfileScreen(api: api, session: session, child: child),
         ),
       ),
       child: Row(
         children: <Widget>[
-          CircleAvatar(
+          const CircleAvatar(
             radius: 32,
-            backgroundColor: const Color(0xFFDCFCE7),
-            child: Text(child.avatarId == 'pando-star' ? '⭐' : '🐼', style: const TextStyle(fontSize: 28)),
+            backgroundColor: Color(0xFFDCFCE7),
+            child: Icon(Icons.pets_rounded, size: 30),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(child.displayName, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  child.displayName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 Text('${child.ageYears} years • ${child.ageGroupId}'),
                 const SizedBox(height: 8),
                 Text(
                   child.currentGrowScore == null
                       ? 'Development Check not started'
                       : 'GrowScore ${child.currentGrowScore!.round()}',
-                  style: const TextStyle(color: PandaWiseColors.blue, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: PandaWiseColors.blue,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -244,18 +313,30 @@ class _ChildrenPage extends StatelessWidget {
                 padding: const EdgeInsets.all(24),
                 children: <Widget>[
                   const SizedBox(height: 80),
-                  const Icon(Icons.child_care_rounded, size: 64, color: PandaWiseColors.green),
+                  const Icon(
+                    Icons.child_care_rounded,
+                    size: 64,
+                    color: PandaWiseColors.green,
+                  ),
                   const SizedBox(height: 16),
-                  Text('No child profiles yet', style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+                  Text(
+                    'No child profiles yet',
+                    style: Theme.of(context).textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 8),
-                  const Text('Add a child to begin Passion Discovery and the Development Check.', textAlign: TextAlign.center),
+                  const Text(
+                    'Add a child to begin Passion Discovery and the Development Check.',
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               )
             : ListView.separated(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
                 itemCount: session.children.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (BuildContext context, int index) => _ChildSummaryCard(
+                itemBuilder: (BuildContext context, int index) =>
+                    _ChildSummaryCard(
                   api: api,
                   session: session,
                   child: session.children[index],
@@ -272,7 +353,9 @@ Future<void> _openAddChild(
   SessionController session,
 ) async {
   await Navigator.of(context).push<void>(
-    MaterialPageRoute<void>(builder: (_) => AddChildScreen(api: api, session: session)),
+    MaterialPageRoute<void>(
+      builder: (_) => AddChildScreen(api: api, session: session),
+    ),
   );
 }
 
@@ -284,7 +367,8 @@ Future<void> _openDiscovery(
 ) async {
   await Navigator.of(context).push<void>(
     MaterialPageRoute<void>(
-      builder: (_) => PassionDiscoveryScreen(api: api, session: session, child: child),
+      builder: (_) =>
+          PassionDiscoveryScreen(api: api, session: session, child: child),
     ),
   );
 }

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 
 const trackedFiles = execFileSync(
   "git",
@@ -26,6 +26,7 @@ const secretPatterns = [
 
 const findings = [];
 for (const file of trackedFiles) {
+  if (!existsSync(file)) continue;
   if (forbiddenFilePatterns.some((pattern) => pattern.test(file))) {
     findings.push(`${file}: forbidden secret-bearing file type`);
   }

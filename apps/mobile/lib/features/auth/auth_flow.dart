@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pandawise_mobile/core/api/pandawise_api.dart';
+import 'package:pandawise_mobile/core/models/models.dart';
 import 'package:pandawise_mobile/core/session/session_controller.dart';
 import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
 import 'package:pandawise_mobile/core/widgets/pando_brand.dart';
@@ -39,19 +40,23 @@ class _AuthFlowState extends State<AuthFlow> {
                         _AuthPage.login => _LoginForm(
                             key: const ValueKey<String>('login'),
                             session: widget.session,
-                            onSignup: () => setState(() => _page = _AuthPage.signup),
-                            onForgot: () =>
-                                setState(() => _page = _AuthPage.forgotPassword),
+                            onSignup: () =>
+                                setState(() => _page = _AuthPage.signup),
+                            onForgot: () => setState(
+                                () => _page = _AuthPage.forgotPassword),
                           ),
                         _AuthPage.signup => _SignupForm(
                             key: const ValueKey<String>('signup'),
                             session: widget.session,
-                            onLogin: () => setState(() => _page = _AuthPage.login),
+                            api: widget.api,
+                            onLogin: () =>
+                                setState(() => _page = _AuthPage.login),
                           ),
                         _AuthPage.forgotPassword => _ForgotPasswordForm(
                             key: const ValueKey<String>('forgot'),
                             api: widget.api,
-                            onBack: () => setState(() => _page = _AuthPage.login),
+                            onBack: () =>
+                                setState(() => _page = _AuthPage.login),
                           ),
                       },
                     ),
@@ -111,9 +116,15 @@ class _LoginFormState extends State<_LoginForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text('Welcome back', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'Welcome back',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 8),
-          Text('Continue your child’s growth journey.', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Continue your child’s growth journey.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const SizedBox(height: 24),
           TextFormField(
             controller: _email,
@@ -132,14 +143,22 @@ class _LoginFormState extends State<_LoginForm> {
               suffixIcon: IconButton(
                 tooltip: _hidePassword ? 'Show password' : 'Hide password',
                 onPressed: () => setState(() => _hidePassword = !_hidePassword),
-                icon: Icon(_hidePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                icon: Icon(
+                  _hidePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
               ),
             ),
-            validator: (String? value) => value == null || value.isEmpty ? 'Enter your password' : null,
+            validator: (String? value) =>
+                value == null || value.isEmpty ? 'Enter your password' : null,
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton(onPressed: widget.onForgot, child: const Text('Forgot password?')),
+            child: TextButton(
+              onPressed: widget.onForgot,
+              child: const Text('Forgot password?'),
+            ),
           ),
           PandaWiseLoadingButton(
             label: 'Login',
@@ -147,7 +166,10 @@ class _LoginFormState extends State<_LoginForm> {
             loading: widget.session.busy,
           ),
           const SizedBox(height: 12),
-          TextButton(onPressed: widget.onSignup, child: const Text('Create a PandaWise account')),
+          TextButton(
+            onPressed: widget.onSignup,
+            child: const Text('Create a PandaWise account'),
+          ),
         ],
       ),
     );
@@ -155,9 +177,15 @@ class _LoginFormState extends State<_LoginForm> {
 }
 
 class _SignupForm extends StatefulWidget {
-  const _SignupForm({required this.session, required this.onLogin, super.key});
+  const _SignupForm({
+    required this.session,
+    required this.api,
+    required this.onLogin,
+    super.key,
+  });
 
   final SessionController session;
+  final PandaWiseApi api;
   final VoidCallback onLogin;
 
   @override
@@ -170,9 +198,16 @@ class _SignupFormState extends State<_SignupForm> {
   final TextEditingController _mobile = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
-  String _parentType = 'Guardian';
+  late Future<BootstrapData> _bootstrap;
+  String? _parentType;
   bool _terms = false;
   bool _marketing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap = widget.api.getBootstrapData();
+  }
 
   @override
   void dispose() {
@@ -191,7 +226,7 @@ class _SignupFormState extends State<_SignupForm> {
     }
     final bool success = await widget.session.register(
       name: _name.text,
-      parentType: _parentType,
+      parentType: _parentType!,
       mobileNumber: _mobile.text,
       email: _email.text,
       password: _password.text,
@@ -202,33 +237,73 @@ class _SignupFormState extends State<_SignupForm> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<BootstrapData>(
+      future: _bootstrap,
+      builder: (BuildContext context, AsyncSnapshot<BootstrapData> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final List<String> parentTypes =
+            snapshot.data?.parentTypes ?? <String>[];
+        if (snapshot.hasError || parentTypes.isEmpty) {
+          return Column(
+            children: <Widget>[
+              const Text('PandaWise could not load registration options.'),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () =>
+                    setState(() => _bootstrap = widget.api.getBootstrapData()),
+                child: const Text('Retry'),
+              ),
+            ],
+          );
+        }
+        _parentType =
+            parentTypes.contains(_parentType) ? _parentType : parentTypes.first;
+        return _form(context, parentTypes);
+      },
+    );
+  }
+
+  Widget _form(BuildContext context, List<String> parentTypes) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text('Create account', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'Create account',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 20),
           TextFormField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Parent name'),
-            validator: (String? value) => (value?.trim().length ?? 0) < 2 ? 'Enter your name' : null,
+            validator: (String? value) =>
+                (value?.trim().length ?? 0) < 2 ? 'Enter your name' : null,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _parentType,
             decoration: const InputDecoration(labelText: 'I am the child’s…'),
-            items: const <String>['Mother', 'Father', 'Guardian', 'Grandparent']
-                .map((String value) => DropdownMenuItem<String>(value: value, child: Text(value)))
+            items: parentTypes
+                .map(
+                  (String value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  ),
+                )
                 .toList(growable: false),
-            onChanged: (String? value) => setState(() => _parentType = value ?? 'Guardian'),
+            onChanged: (String? value) => setState(() => _parentType = value),
           ),
           const SizedBox(height: 12),
           TextFormField(
             controller: _mobile,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(labelText: 'Mobile number'),
-            validator: (String? value) => (value?.trim().length ?? 0) < 8 ? 'Enter a valid mobile number' : null,
+            validator: (String? value) => (value?.trim().length ?? 0) < 8
+                ? 'Enter a valid mobile number'
+                : null,
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -244,7 +319,8 @@ class _SignupFormState extends State<_SignupForm> {
             decoration: const InputDecoration(labelText: 'Password'),
             validator: (String? value) {
               if ((value?.length ?? 0) < 8) return 'Use at least 8 characters';
-              if (!RegExp(r'[A-Z]').hasMatch(value!)) return 'Add an uppercase letter';
+              if (!RegExp(r'[A-Z]').hasMatch(value!))
+                return 'Add an uppercase letter';
               if (!RegExp(r'\d').hasMatch(value)) return 'Add a number';
               return null;
             },
@@ -261,7 +337,8 @@ class _SignupFormState extends State<_SignupForm> {
             value: _marketing,
             controlAffinity: ListTileControlAffinity.leading,
             title: const Text('Send me optional PandaWise updates'),
-            onChanged: (bool? value) => setState(() => _marketing = value ?? false),
+            onChanged: (bool? value) =>
+                setState(() => _marketing = value ?? false),
           ),
           PandaWiseLoadingButton(
             label: 'Register',
@@ -269,7 +346,10 @@ class _SignupFormState extends State<_SignupForm> {
             loading: widget.session.busy,
           ),
           const SizedBox(height: 12),
-          TextButton(onPressed: widget.onLogin, child: const Text('Already registered? Login')),
+          TextButton(
+            onPressed: widget.onLogin,
+            child: const Text('Already registered? Login'),
+          ),
         ],
       ),
     );
@@ -277,7 +357,11 @@ class _SignupFormState extends State<_SignupForm> {
 }
 
 class _ForgotPasswordForm extends StatefulWidget {
-  const _ForgotPasswordForm({required this.api, required this.onBack, super.key});
+  const _ForgotPasswordForm({
+    required this.api,
+    required this.onBack,
+    super.key,
+  });
 
   final PandaWiseApi api;
   final VoidCallback onBack;
@@ -318,7 +402,10 @@ class _ForgotPasswordFormState extends State<_ForgotPasswordForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text('Reset password', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'Reset password',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 8),
           Text(
             _accepted
@@ -334,10 +421,17 @@ class _ForgotPasswordFormState extends State<_ForgotPasswordForm> {
               validator: _emailValidator,
             ),
             const SizedBox(height: 16),
-            PandaWiseLoadingButton(label: 'Continue', onPressed: _submit, loading: _busy),
+            PandaWiseLoadingButton(
+              label: 'Continue',
+              onPressed: _submit,
+              loading: _busy,
+            ),
           ],
           const SizedBox(height: 12),
-          TextButton(onPressed: widget.onBack, child: const Text('Back to login')),
+          TextButton(
+            onPressed: widget.onBack,
+            child: const Text('Back to login'),
+          ),
         ],
       ),
     );
@@ -353,7 +447,6 @@ String? _emailValidator(String? value) {
 }
 
 void _showError(BuildContext context, String? message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message ?? 'Please try again.')),
-  );
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(message ?? 'Please try again.')));
 }

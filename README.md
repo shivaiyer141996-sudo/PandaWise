@@ -1,29 +1,26 @@
 # PandaWise
 
-PandaWise is a parent-led child growth journey for families with children aged
-3–12. Pando, the PandaWise mascot, guides parents from a Development Check to a
-personalized 21-day Mission journey and measurable reassessment.
+PandaWise is a parent-led growth journey for families with children aged 3–12.
+The existing Flutter UI leads a family through:
 
-## Release 1.0 outcome
+`Profile → Passion Discovery → Development Check → GrowScore → Focus areas → 21-day journey → Daily feedback → Reassessment`
 
-PandaWise answers four parent questions:
+## Sprint 11 architecture
 
-1. Where is my child today?
-2. What are their strengths and growth opportunities?
-3. What should we do next?
-4. Is the journey helping?
+Sprint 11 preserves the existing Flutter screens, navigation, branding, theme and
+animations. It removes the former Node/Fastify backend and uses only free Google
+infrastructure:
 
-The approved loop is:
+`Flutter APK → Google Apps Script Web App → PandaWise Google Sheets`
 
-`Profile -> Passion Discovery -> Development Check -> GrowScore -> Focus areas -> 21-day journey -> Daily feedback -> Reassessment`
+- `apps/mobile` — existing Flutter Android app, including durable offline writes.
+- `services/apps-script` — complete Apps Script Web App backend.
+- `contracts/apps-script-api.md` — JSON envelope and logical REST route contract.
+- `docs/operations/apps-script-deployment-guide.md` — setup and deployment.
+- `docs/sprint-11-traceability.md` — PRD/FSD acceptance mapping.
 
-## Repository structure
-
-- `apps/mobile` — Flutter Android application, designed for future iOS support.
-- `services/api` — TypeScript API and Google Sheets adapter.
-- `contracts` — API and configuration contracts.
-- `docs` — Product, architecture, sprint, operations and release evidence.
-- `config` — Non-secret workbook and feature-contract metadata.
+There is no Firebase, cloud database, Node server, container, VPS or paid runtime.
+Google Sheets is the only database and all product masters remain editable there.
 
 ## Source-of-truth links
 
@@ -31,52 +28,37 @@ The approved loop is:
 - [PandaWise Masters](https://docs.google.com/spreadsheets/d/1ox11C3hz0pozmjM3bwk6vh99OHH4HPxknSD0tejJRDY/edit)
 - [Sprint 10 rehearsal workbook](https://docs.google.com/spreadsheets/d/1x5y3dREaGkdXPEKHU41dz0nThKMHLMeqW9IGdj7l2p4/edit)
 
-## Current implementation status
+## Configuration
 
-- Sprints 0–2 provide foundation, authentication and parent/child profiles.
-- Sprints 3–4 provide Passion Discovery, Development Check, GrowScore and focus areas.
-- Sprints 5–6 provide personalized journeys, daily Missions, feedback and summaries.
-- Sprint 7 provides progress analytics, history, reassessment and the recurring loop.
-- Sprint 8 provides plan entitlements, notifications, profile and preferences.
-- Sprint 9 provides release hardening, resilience, security and Android CI.
-- Sprint 10 prepares the completed Release 1.0 candidate for a controlled pilot
-  through CI evidence, a copied-workbook rehearsal, device UAT and a go/no-go review.
+The APK has one environment-specific setting in
+`apps/mobile/lib/core/config/config.dart`:
 
-The code remains Release 1.0 candidate `1.0.0-rc.1` until the Sprint 10
-environment and human acceptance gates pass. Sprint 10 adds no product features.
-
-## Local API
-
-```bash
-npm install
-cp services/api/.env.example services/api/.env
-npm run dev:api
+```text
+PANDAWISE_APPS_SCRIPT_URL=https://script.google.com/macros/s/<deployment-id>/exec
 ```
 
-The default development provider is in-memory. To use Google Sheets, set
-`DATA_PROVIDER=google-sheets` and provide the variables documented in
-`services/api/.env.example`.
-
-## Mobile app
-
-Install Flutter 3.47.0, then:
+No fallback or placeholder endpoint exists. Follow the deployment guide, then:
 
 ```bash
 cd apps/mobile
 flutter pub get
-flutter run --dart-define=PANDAWISE_API_BASE_URL=http://10.0.2.2:8080
+flutter run --dart-define=PANDAWISE_APPS_SCRIPT_URL="https://script.google.com/macros/s/<deployment-id>/exec"
 ```
 
 ## Quality gates
 
 ```bash
+npm ci
 npm run check
 npm run audit
 npm run security:scan
 npm run pilot:readiness
-cd apps/mobile && flutter analyze && flutter test
+cd apps/mobile && flutter pub get && flutter analyze && flutter test
 ```
 
-Release evidence is maintained in `docs/release`; Google Sheets recovery is in
-`docs/operations/google-sheets-runbook.md`. No Google credentials, production
-secrets or family PII belong in this repository.
+GitHub Actions builds a functional debug APK only when a real deployed Web App URL
+is supplied through the `PANDAWISE_APPS_SCRIPT_URL` repository variable or the
+manual workflow input. It never builds an APK with a dummy backend URL.
+
+No Apps Script secret, Google credential, password, session token or family PII
+belongs in this repository or in an APK.

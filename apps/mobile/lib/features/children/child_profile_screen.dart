@@ -22,16 +22,21 @@ class ChildProfileScreen extends StatelessWidget {
     if (child.currentGrowScore == null) {
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => PassionDiscoveryScreen(api: api, session: session, child: child),
+          builder: (_) =>
+              PassionDiscoveryScreen(api: api, session: session, child: child),
         ),
       );
       return;
     }
-    final GrowScoreReport? report = await session.getLatestGrowScoreReport(child.id);
+    final GrowScoreReport? report = await session.getLatestGrowScoreReport(
+      child.id,
+    );
     if (!context.mounted) return;
     if (report == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(session.error ?? 'GrowScore report is not available.')),
+        SnackBar(
+          content: Text(session.error ?? 'GrowScore report is not available.'),
+        ),
       );
       return;
     }
@@ -56,13 +61,16 @@ class ChildProfileScreen extends StatelessWidget {
           PandaWiseCard(
             child: Column(
               children: <Widget>[
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 44,
-                  backgroundColor: const Color(0xFFDCFCE7),
-                  child: Text(child.avatarId == 'pando-star' ? '⭐' : '🐼', style: const TextStyle(fontSize: 38)),
+                  backgroundColor: Color(0xFFDCFCE7),
+                  child: Icon(Icons.pets_rounded, size: 40),
                 ),
                 const SizedBox(height: 12),
-                Text(child.displayName, style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  child.displayName,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 Text('${child.ageYears} years • ${child.gender}'),
               ],
             ),
@@ -72,14 +80,26 @@ class ChildProfileScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('GrowScore', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 8),
                 Text(
-                  child.currentGrowScore == null ? 'Not available yet' : child.currentGrowScore!.round().toString(),
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: PandaWiseColors.blue),
+                  'GrowScore',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
-                Text(child.currentGrowScore == null ? 'Start Discovery to understand current strengths.' : 'Latest child-development snapshot'),
+                Text(
+                  child.currentGrowScore == null
+                      ? 'Not available yet'
+                      : child.currentGrowScore!.round().toString(),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineLarge
+                      ?.copyWith(color: PandaWiseColors.blue),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  child.currentGrowScore == null
+                      ? 'Start Discovery to understand current strengths.'
+                      : 'Latest child-development snapshot',
+                ),
               ],
             ),
           ),
@@ -91,16 +111,26 @@ class ChildProfileScreen extends StatelessWidget {
                 const Divider(),
                 _StatusRow(label: 'Journey', value: child.journeyStatus),
                 const Divider(),
-                _StatusRow(label: 'Current streak', value: '${child.currentStreak} days'),
+                _StatusRow(
+                  label: 'Current streak',
+                  value: '${child.currentStreak} days',
+                ),
                 const Divider(),
-                _StatusRow(label: 'Badge level', value: child.currentBadgeLevel),
+                _StatusRow(
+                  label: 'Badge level',
+                  value: child.currentBadgeLevel,
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
           FilledButton(
             onPressed: () => _openNext(context),
-            child: Text(child.currentGrowScore == null ? 'Start Discovery' : 'View GrowScore Report'),
+            child: Text(
+              child.currentGrowScore == null
+                  ? 'Start Discovery'
+                  : 'View GrowScore Report',
+            ),
           ),
         ],
       ),

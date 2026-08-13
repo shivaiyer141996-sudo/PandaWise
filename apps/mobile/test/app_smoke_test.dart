@@ -3,15 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pandawise_mobile/app.dart';
 import 'package:pandawise_mobile/core/api/pandawise_api.dart';
 import 'package:pandawise_mobile/core/models/models.dart';
+import 'package:pandawise_mobile/core/offline/offline_mutation_store.dart';
 import 'package:pandawise_mobile/core/session/session_controller.dart';
 import 'package:pandawise_mobile/core/session/token_store.dart';
 
 void main() {
-  testWidgets('shows login after restoring an empty session', (WidgetTester tester) async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('shows login after restoring an empty session', (
+    WidgetTester tester,
+  ) async {
     final _FakeApi api = _FakeApi();
     final SessionController session = SessionController(
       api: api,
       tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
     );
 
     await tester.pumpWidget(PandaWiseApp(api: api, session: session));
@@ -21,11 +27,14 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
   });
 
-  testWidgets('logs in and shows the Sprint 1 dashboard', (WidgetTester tester) async {
+  testWidgets('logs in and shows the Sprint 1 dashboard', (
+    WidgetTester tester,
+  ) async {
     final _FakeApi api = _FakeApi();
     final SessionController session = SessionController(
       api: api,
       tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
     );
     await tester.pumpWidget(PandaWiseApp(api: api, session: session));
     await tester.pumpAndSettle();
@@ -54,6 +63,8 @@ class _FakeApi implements PandaWiseApi {
     parentType: 'Father',
     mobileNumber: '9876543210',
     subscriptionPlanId: 'PLN001',
+    subscriptionPlanName: 'Explorer',
+    weeklySummaryAvailable: false,
     preferredLanguageId: 'LNG001',
     dailyTimeCommitment: '15_MIN',
     pushNotification: false,
@@ -120,7 +131,10 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
-  Future<GrowScoreReport> completeAssessment(String token, String assessmentId) {
+  Future<GrowScoreReport> completeAssessment(
+    String token,
+    String assessmentId,
+  ) {
     throw UnimplementedError();
   }
 
@@ -130,12 +144,18 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
-  Future<GrowScoreReport> getAssessmentReport(String token, String assessmentId) {
+  Future<GrowScoreReport> getAssessmentReport(
+    String token,
+    String assessmentId,
+  ) {
     throw UnimplementedError();
   }
 
   @override
-  Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId) {
+  Future<GrowScoreReport> getLatestGrowScoreReport(
+    String token,
+    String childId,
+  ) {
     throw UnimplementedError();
   }
 
@@ -161,20 +181,33 @@ class _FakeApi implements PandaWiseApi {
       schools: <MasterOption>[],
       grades: <MasterOption>[],
       timeCommitments: <String>['15_MIN'],
+      parentTypes: <String>['Father'],
+      genders: <String>['Prefer not to say'],
+      avatars: <MasterOption>[
+        MasterOption(id: 'pando-smile', name: 'Pando smile'),
+      ],
     );
   }
 
   @override
-  Future<List<ChildProfile>> getChildren(String token) async => <ChildProfile>[];
+  Future<List<ChildProfile>> getChildren(String token) async =>
+      <ChildProfile>[];
 
   @override
-  Future<List<String>> getSelectedPassions(String token, String childId) async => <String>[];
+  Future<List<String>> getSelectedPassions(
+    String token,
+    String childId,
+  ) async =>
+      <String>[];
 
   @override
   Future<ParentProfile> getMe(String token) async => _parent;
 
   @override
-  Future<AuthResult> login({required String email, required String password}) async {
+  Future<AuthResult> login({
+    required String email,
+    required String password,
+  }) async {
     return const AuthResult(token: 'test-token', parent: _parent);
   }
 
@@ -182,7 +215,10 @@ class _FakeApi implements PandaWiseApi {
   Future<void> requestPasswordReset(String email) async {}
 
   @override
-  Future<ParentProfile> updateMarketingConsent(String token, bool marketingConsent) {
+  Future<ParentProfile> updateMarketingConsent(
+    String token,
+    bool marketingConsent,
+  ) {
     throw UnimplementedError();
   }
 
@@ -223,7 +259,8 @@ class _FakeApi implements PandaWiseApi {
     String token,
     String childId,
     List<String> passionIds,
-  ) async => passionIds;
+  ) async =>
+      passionIds;
 
   @override
   Future<AssessmentDetail> startAssessment(String token, String childId) {

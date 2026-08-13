@@ -1,20 +1,15 @@
 {
   "name": "pandawise",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0-sprint.11",
   "private": true,
-  "description": "PandaWise Release 1.0 monorepo",
-  "workspaces": [
-    "services/api"
-  ],
+  "description": "PandaWise Flutter app with a Google Apps Script and Google Sheets backend",
   "scripts": {
-    "build": "npm run build --workspace @pandawise/api",
+    "apps-script:check": "node scripts/apps-script-check.mjs",
     "audit": "npm audit --audit-level=high",
-    "check": "npm run typecheck --workspace @pandawise/api && npm run test --workspace @pandawise/api && npm run build --workspace @pandawise/api",
-    "dev:api": "npm run dev --workspace @pandawise/api",
+    "check": "npm run apps-script:check && npm test",
     "pilot:readiness": "node scripts/pilot-readiness.mjs",
     "security:scan": "node scripts/security-scan.mjs",
-    "test": "npm run test --workspace @pandawise/api",
-    "typecheck": "npm run typecheck --workspace @pandawise/api"
+    "test": "node --test test/*.test.mjs"
   },
   "engines": {
     "node": ">=22"

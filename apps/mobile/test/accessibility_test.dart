@@ -4,7 +4,9 @@ import 'package:pandawise_mobile/core/theme/app_theme.dart';
 import 'package:pandawise_mobile/core/widgets/pandawise_card.dart';
 
 void main() {
-  testWidgets('primary actions remain usable at large text scale', (WidgetTester tester) async {
+  testWidgets('primary actions remain usable at large text scale', (
+    WidgetTester tester,
+  ) async {
     bool pressed = false;
     await tester.pumpWidget(
       MaterialApp(
@@ -28,32 +30,39 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(tester.getSize(find.byType(FilledButton)).height, greaterThanOrEqualTo(48));
+    expect(
+      tester.getSize(find.byType(FilledButton)).height,
+      greaterThanOrEqualTo(48),
+    );
     await tester.tap(find.byType(FilledButton));
     expect(pressed, isTrue);
   });
 
-  testWidgets('loading action exposes progress semantics and cannot be tapped', (
-    WidgetTester tester,
-  ) async {
-    bool pressed = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildPandaWiseTheme(),
-        home: Scaffold(
-          body: PandaWiseLoadingButton(
-            label: 'Save Profile',
-            loading: true,
-            onPressed: () => pressed = true,
+  testWidgets(
+    'loading action exposes progress semantics and cannot be tapped',
+    (WidgetTester tester) async {
+      bool pressed = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildPandaWiseTheme(),
+          home: Scaffold(
+            body: PandaWiseLoadingButton(
+              label: 'Save Profile',
+              loading: true,
+              onPressed: () => pressed = true,
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    final SemanticsHandle handle = tester.ensureSemantics();
-    expect(find.bySemanticsLabel(RegExp('Save Profile in progress')), findsOneWidget);
-    await tester.tap(find.byType(FilledButton));
-    expect(pressed, isFalse);
-    handle.dispose();
-  });
+      final SemanticsHandle handle = tester.ensureSemantics();
+      expect(
+        find.bySemanticsLabel(RegExp('Save Profile in progress')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byType(FilledButton));
+      expect(pressed, isFalse);
+      handle.dispose();
+    },
+  );
 }

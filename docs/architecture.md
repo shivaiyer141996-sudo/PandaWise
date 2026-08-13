@@ -1,101 +1,78 @@
-# PandaWise Release 1.0 Architecture
-
-## Context
-
-PandaWise must ship as an Android APK, keep operational cost low and allow business
-users to maintain product masters in Google Sheets. It must also avoid coupling the
-mobile app to the spreadsheet so a later database migration stays feasible.
+# PandaWise Release 1.0 architecture
 
 ## Components
 
 ### Flutter mobile app
 
-- Renders the 25 approved screens.
-- Holds presentation state and a short-lived parent session.
-- Calls only the PandaWise API.
-- Never receives Google service-account credentials.
-- Does not embed master data beyond harmless loading/empty-state copy.
+- Keeps the existing Release 1 UI and product journey unchanged.
+- Calls one configured Google Apps Script `/exec` URL.
+- Sends a logical route, logical HTTP method, token and payload in a JSON envelope.
+- Follows the Google ContentService redirect without exposing credentials.
+- Persists offline assessment answers, mission completions and profile edits with
+  `SharedPreferences`; connectivity recovery triggers ordered replay.
+- Keeps the parent token in secure storage and clears account-scoped offline data
+  on logout.
 
-### TypeScript API
+### Google Apps Script Web App
 
-- Authenticates parents and enforces plan entitlements.
-- Validates all inputs and derives server-owned fields.
-- Reads/writes Google Sheets through a repository interface.
-- Selects versioned assessment content and computes weighted GrowScore server-side.
-- Generates explainable, plan-aware starter/full journeys from mission,
-  recommendation and subscription masters; only the current daily mission is
-  exposed as actionable.
-- Separates assessment change from mission activity and filters history, comparison
-  and skill trends against Subscription Master entitlements before serialization.
-- Exposes manual V1 plan selection without a payment gateway, validates safe
-  downgrades, and persists parent communication, consent and referral preferences.
-- Returns stable JSON contracts to the app.
-- Separates liveness (`/health`) from data-provider readiness (`/ready`).
+- Is the only backend and returns JSON only.
+- Uses `doGet`/`doPost` as physical transports and dispatches logical REST routes.
+- Validates all input, ownership, age eligibility and plan entitlement server-side.
+- Reads and writes the configured workbook by header name, never fixed row number.
+- Uses `LockService` around mutations to protect concurrent Sheet writes.
+- Calculates GrowScore, reports, recommendations, journeys, summaries and dashboard
+  data from Sheet masters and operational tabs.
+- Uses stable error codes and never returns stack traces or sensitive values.
 
 ### Google Sheets
 
-- Acts as the V1 configurable data and operational store.
-- Uses stable IDs and header names rather than row numbers as contracts.
-- Remains editable by authorized business users.
-- Is accessed by a least-privilege service account through the backend only.
-- Uses bounded exponential retry for quota/transient failures; permanent permission
-  and workbook-contract errors fail fast and surface through readiness monitoring.
+- Is the only Release 1 database and configuration source.
+- Holds masters, parent/child profiles, assessment events/results, journey events,
+  subscriptions, badges, configuration and audit records.
+- Uses append-only events where history matters and updates snapshot columns for
+  dashboard performance.
+- Is administered through native Sheets validation and Drive version history.
 
-## Dependency direction
+## Request flow
 
-`Flutter -> HTTP contracts -> API/domain -> repository interface -> Google Sheets`
-
-No domain service imports Google APIs directly. This keeps the future replacement of
-Google Sheets with PostgreSQL behind one adapter.
-
-## Configuration
-
-Required production variables:
-
-- `DATA_PROVIDER=google-sheets`
-- `GOOGLE_SHEET_ID`
-- `GOOGLE_SERVICE_ACCOUNT_JSON`
-- `GOOGLE_SHEETS_MAX_ATTEMPTS`
-- `GOOGLE_SHEETS_RETRY_BASE_MS`
-- `JWT_SECRET`
-- `ALLOWED_ORIGINS`
-
-Secrets are injected at runtime. They are not stored in Dart defines, source files,
-CI logs or committed environment files.
+1. Flutter posts an envelope to the Apps Script `/exec` URL.
+2. Apps Script validates the route and signed parent token.
+3. Apps Script reads or mutates the workbook and derives the response.
+4. Apps Script returns `{ "ok": true, "data": ... }` or a stable error envelope.
+5. Flutter maps the JSON to the existing screen models.
 
 ## Authentication
 
-- Registration hashes passwords with bcrypt before persistence.
-- Login compares the hash and issues a short-lived JWT.
-- Parent-owned resources are authorized by the token subject, never by trusting a
-  parent ID supplied by the app.
-- Account status is checked on every authentication flow.
+- Registration validates the parent against master-backed options.
+- Passwords use a per-password random salt, SHA-256 and a server-side Script
+  Property secret. Only `sha256$salt$digest` is stored in `Password_Hash`.
+- The secret is not stored in Sheets, source, logs or the APK.
+- Session tokens are HMAC signed, time limited and scoped to a parent ID.
+- Parent ownership is checked for every child, assessment, report and journey route.
 
-Password reset delivery is intentionally represented as a safe acceptance response
-in Sprint 1; notification delivery and one-time reset tokens are completed with the
-notification module.
+Pre-Sprint 11 bcrypt hashes are not silently converted. If such rows exist, an
+authorized password-reset migration is required before those accounts can log in.
 
-## Reliability controls
+## Master-driven rules
 
-- Header-driven row mapping prevents accidental dependence on column position.
-- Write operations use generated stable IDs and ISO timestamps.
-- Assessment responses are append-only events; the latest response per question is
-  used for auto-save/resume and completion.
-- Completion is idempotent: existing skill results are reused and only missing
-  score rows are appended before snapshots are updated.
-- Journey creation is idempotent per completed assessment; mission feedback creates
-  one completion event per schedule and atomically advances journey/child snapshots.
-- Progress is derived from immutable assessments, skill scores, journeys and mission
-  completions; Child Master snapshots are not treated as historical truth.
-- Plan changes update the parent record and every active child plan snapshot while
-  retaining historical assessment and journey records under their original IDs.
-- API errors have machine-readable codes and never expose credentials or stack data.
-- Google Sheets timeouts, quota responses and malformed rows are translated into
-  controlled service errors.
-- The memory adapter supports deterministic local development and automated tests.
+- Age support and respondent mode: `04_Age_Group_Master` (3–6, 6–9, 9–12 only).
+- Schools: `03_School_Master` (Chennai Release 1 list; never free-typed).
+- Questions/options/scoring: question, option, skill and app-configuration masters.
+- Missions/recommendations: mission and recommendation-rule masters.
+- Explorer/Growth/Mastery entitlements: `18_Subscription_Master`.
+- Badges and thresholds: badge and app-configuration masters.
 
-## Known V1 trade-offs
+Missing or invalid master configuration fails readiness with a controlled workbook
+contract error; the backend does not invent business defaults.
 
-Google Sheets is appropriate for an early validation release but is not a high-write,
-high-concurrency database. Before broader production scale, measure quotas, latency,
-row growth and contention. The adapter boundary is the planned migration seam.
+## Reliability and trade-offs
+
+- Assessment answers are append-only; the latest answer per question enables
+  autosave and resume.
+- Completion reuses existing score rows, and journey creation reuses the current
+  journey, to reduce duplicate mutations.
+- Apps Script and Sheets are suitable for a free controlled pilot, not unlimited
+  high-concurrency traffic. Monitor execution time, quotas, sheet growth and lock
+  contention before broader rollout.
+- A future database migration would replace Apps Script/Sheets, but no alternate
+  backend exists in Release 1.

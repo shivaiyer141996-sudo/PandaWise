@@ -34,12 +34,17 @@ class _PassionDiscoveryScreenState extends State<PassionDiscoveryScreen> {
 
   Future<_PassionState> _load() async {
     final BootstrapData data = await widget.api.getBootstrapData();
-    final List<String> selected = await widget.session.getSelectedPassions(widget.child.id);
+    final List<String> selected = await widget.session.getSelectedPassions(
+      widget.child.id,
+    );
     _selected
       ..clear()
       ..addAll(selected);
     final List<MasterOption> passions = data.passions
-        .where((MasterOption passion) => _appliesToAgeGroup(passion, widget.child.ageGroupId))
+        .where(
+          (MasterOption passion) =>
+              _appliesToAgeGroup(passion, widget.child.ageGroupId),
+        )
         .toList(growable: false);
     return _PassionState(passions: passions);
   }
@@ -60,7 +65,10 @@ class _PassionDiscoveryScreenState extends State<PassionDiscoveryScreen> {
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (_) => DevelopmentCheckScreen(session: widget.session, child: widget.child),
+        builder: (_) => DevelopmentCheckScreen(
+          session: widget.session,
+          child: widget.child,
+        ),
       ),
     );
   }
@@ -135,7 +143,10 @@ class _PassionDiscoveryScreenState extends State<PassionDiscoveryScreen> {
               Text(
                 '${_selected.length} of 5 selected',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: PandaWiseColors.blue, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  color: PandaWiseColors.blue,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 16),
               PandaWiseLoadingButton(
@@ -152,13 +163,19 @@ class _PassionDiscoveryScreenState extends State<PassionDiscoveryScreen> {
 }
 
 class DevelopmentCheckScreen extends StatelessWidget {
-  const DevelopmentCheckScreen({required this.session, required this.child, super.key});
+  const DevelopmentCheckScreen({
+    required this.session,
+    required this.child,
+    super.key,
+  });
 
   final SessionController session;
   final ChildProfile child;
 
   Future<void> _start(BuildContext context) async {
-    final AssessmentDetail? assessment = await session.startAssessment(child.id);
+    final AssessmentDetail? assessment = await session.startAssessment(
+      child.id,
+    );
     if (!context.mounted) return;
     if (assessment == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -179,13 +196,16 @@ class DevelopmentCheckScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool hybrid = child.ageGroupId == 'AG03';
     return Scaffold(
       appBar: AppBar(title: const Text('Development Check')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: <Widget>[
-          const Icon(Icons.fact_check_outlined, size: 72, color: PandaWiseColors.blue),
+          const Icon(
+            Icons.fact_check_outlined,
+            size: 72,
+            color: PandaWiseColors.blue,
+          ),
           const SizedBox(height: 20),
           Text(
             'A thoughtful snapshot—not a test',
@@ -198,14 +218,17 @@ class DevelopmentCheckScreen extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          PandaWiseCard(
+          const PandaWiseCard(
             child: Column(
               children: <Widget>[
-                const _CheckDetail(icon: Icons.schedule_rounded, label: 'About 10–15 minutes'),
+                const _CheckDetail(
+                  icon: Icons.schedule_rounded,
+                  label: 'About 10–15 minutes',
+                ),
                 const Divider(),
                 _CheckDetail(
                   icon: Icons.family_restroom_rounded,
-                  label: hybrid ? 'Parent and child sections' : 'Answered by parent',
+                  label: 'Age-appropriate parent and child prompts',
                 ),
                 const Divider(),
                 const _CheckDetail(
@@ -240,7 +263,8 @@ class AssessmentQuestionsScreen extends StatefulWidget {
   final AssessmentDetail assessment;
 
   @override
-  State<AssessmentQuestionsScreen> createState() => _AssessmentQuestionsScreenState();
+  State<AssessmentQuestionsScreen> createState() =>
+      _AssessmentQuestionsScreenState();
 }
 
 class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
@@ -252,7 +276,8 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
   void initState() {
     super.initState();
     for (final AssessmentQuestion question in widget.assessment.questions) {
-      if (question.selectedOptionId != null) _answers[question.id] = question.selectedOptionId!;
+      if (question.selectedOptionId != null)
+        _answers[question.id] = question.selectedOptionId!;
     }
     final int firstUnanswered = widget.assessment.questions.indexWhere(
       (AssessmentQuestion question) => !_answers.containsKey(question.id),
@@ -278,7 +303,9 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
     });
     if (!saved) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.session.error ?? 'Response was not saved.')),
+        SnackBar(
+          content: Text(widget.session.error ?? 'Response was not saved.'),
+        ),
       );
     }
   }
@@ -303,6 +330,12 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${_index + 1} of ${widget.assessment.questionCount}'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: _saving ? null : () => Navigator.of(context).pop(),
+            child: const Text('Save & Exit'),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -316,7 +349,9 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
                     alignment: Alignment.centerLeft,
                     child: Chip(
                       avatar: Icon(
-                        question.respondentType == 'CHILD' ? Icons.child_care : Icons.person,
+                        question.respondentType == 'CHILD'
+                            ? Icons.child_care
+                            : Icons.person,
                         size: 18,
                       ),
                       label: Text(
@@ -327,20 +362,29 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Text(question.text, style: Theme.of(context).textTheme.headlineSmall),
+                  Text(
+                    question.text,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                   const SizedBox(height: 24),
                   ...question.options.map((AssessmentOption option) {
                     final bool selected = _answers[question.id] == option.id;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: PandaWiseCard(
-                        onTap: _saving ? null : () => _select(question, option.id),
-                        color: selected ? const Color(0xFFDBEAFE) : Colors.white,
+                        onTap:
+                            _saving ? null : () => _select(question, option.id),
+                        color:
+                            selected ? const Color(0xFFDBEAFE) : Colors.white,
                         child: Row(
                           children: <Widget>[
                             Icon(
-                              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                              color: selected ? PandaWiseColors.blue : PandaWiseColors.muted,
+                              selected
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              color: selected
+                                  ? PandaWiseColors.blue
+                                  : PandaWiseColors.muted,
                             ),
                             const SizedBox(width: 12),
                             Expanded(child: Text(option.text)),
@@ -362,7 +406,9 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
                 children: <Widget>[
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _index == 0 ? null : () => setState(() => _index -= 1),
+                      onPressed: _index == 0
+                          ? null
+                          : () => setState(() => _index -= 1),
                       child: const Text('Previous'),
                     ),
                   ),
@@ -372,7 +418,8 @@ class _AssessmentQuestionsScreenState extends State<AssessmentQuestionsScreen> {
                       onPressed: allAnswered
                           ? _finish
                           : _answers.containsKey(question.id) &&
-                                  _index < widget.assessment.questions.length - 1
+                                  _index <
+                                      widget.assessment.questions.length - 1
                               ? () => setState(() => _index += 1)
                               : null,
                       child: Text(allAnswered ? 'Finish' : 'Next'),
@@ -401,7 +448,9 @@ class AssessmentCompleteScreen extends StatelessWidget {
   final String assessmentId;
 
   Future<void> _showReport(BuildContext context) async {
-    final GrowScoreReport? report = await session.completeAssessment(assessmentId);
+    final GrowScoreReport? report = await session.completeAssessment(
+      assessmentId,
+    );
     if (!context.mounted) return;
     if (report == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -432,10 +481,17 @@ class AssessmentCompleteScreen extends StatelessWidget {
                 const CircleAvatar(
                   radius: 48,
                   backgroundColor: Color(0xFFDCFCE7),
-                  child: Icon(Icons.check_rounded, size: 56, color: PandaWiseColors.green),
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 56,
+                    color: PandaWiseColors.green,
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Text('Development Check complete!', style: Theme.of(context).textTheme.headlineSmall),
+                Text(
+                  'Development Check complete!',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Pando is preparing ${child.displayName}’s strengths-first GrowScore report.',
@@ -479,14 +535,17 @@ class GrowScoreReportScreen extends StatelessWidget {
             color: const Color(0xFFEFF6FF),
             child: Column(
               children: <Widget>[
-                Text(child.displayName, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  child.displayName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   report.growScore.round().toString(),
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: PandaWiseColors.blue,
-                        fontSize: 54,
-                      ),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineLarge
+                      ?.copyWith(color: PandaWiseColors.blue, fontSize: 54),
                 ),
                 const Text('GrowScore'),
                 const SizedBox(height: 8),
@@ -495,11 +554,17 @@ class GrowScoreReportScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Strengths to celebrate', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Strengths to celebrate',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           ...report.strengths.map(_SkillCard.new),
           const SizedBox(height: 16),
-          Text('All visible skills', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'All visible skills',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           ...report.skills.map(_SkillCard.new),
           if (report.lockedSkillCount > 0) ...<Widget>[
@@ -595,9 +660,14 @@ class _ParentFocusAreasScreenState extends State<ParentFocusAreasScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
         children: <Widget>[
-          Text('What would you like to nurture?', style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            'What would you like to nurture?',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 8),
-          const Text('Choose up to three areas. This complements GrowScore with your family priorities.'),
+          const Text(
+            'Choose up to three areas. This complements GrowScore with your family priorities.',
+          ),
           const SizedBox(height: 20),
           ...widget.areas.map((GrowScoreSkill skill) {
             final bool selected = _selected.contains(skill.skillId);
@@ -611,14 +681,19 @@ class _ParentFocusAreasScreenState extends State<ParentFocusAreasScreen> {
                   children: <Widget>[
                     Icon(
                       selected ? Icons.check_circle : Icons.circle_outlined,
-                      color: selected ? PandaWiseColors.green : PandaWiseColors.muted,
+                      color: selected
+                          ? PandaWiseColors.green
+                          : PandaWiseColors.muted,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text(skill.name, style: Theme.of(context).textTheme.titleMedium),
+                          Text(
+                            skill.name,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
                           const SizedBox(height: 4),
                           Text(skill.message),
                         ],
@@ -656,8 +731,16 @@ class _SkillCard extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Expanded(child: Text(skill.name, style: Theme.of(context).textTheme.titleMedium)),
-                Text('${skill.score.round()}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                Expanded(
+                  child: Text(
+                    skill.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Text(
+                  '${skill.score.round()}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -667,7 +750,10 @@ class _SkillCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             const SizedBox(height: 8),
-            Text(skill.bandLabel, style: const TextStyle(color: PandaWiseColors.green)),
+            Text(
+              skill.bandLabel,
+              style: const TextStyle(color: PandaWiseColors.green),
+            ),
             const SizedBox(height: 4),
             Text(skill.message),
           ],
