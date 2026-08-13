@@ -87,11 +87,11 @@ class OfflineMutationStore {
   OfflineMutationStore({OfflineKeyValueStore? storage})
       : _storage = storage ?? const SecureOfflineKeyValueStore();
 
-  static const String _storageKey = 'pandawise.pending_mutations.v1';
+  static const String _storageEntry = 'pw_offline_queue';
   final OfflineKeyValueStore _storage;
 
   Future<List<OfflineMutation>> pending() async {
-    final String? encoded = await _storage.read(_storageKey);
+    final String? encoded = await _storage.read(_storageEntry);
     if (encoded == null || encoded.isEmpty) return <OfflineMutation>[];
     try {
       return (jsonDecode(encoded) as List<dynamic>)
@@ -102,7 +102,7 @@ class OfflineMutationStore {
           )
           .toList(growable: false);
     } catch (_) {
-      await _storage.delete(_storageKey);
+      await _storage.delete(_storageEntry);
       return <OfflineMutation>[];
     }
   }
@@ -190,12 +190,12 @@ class OfflineMutationStore {
   }
 
   Future<void> clear() async {
-    await _storage.delete(_storageKey);
+    await _storage.delete(_storageEntry);
   }
 
   Future<void> _write(List<OfflineMutation> values) async {
     await _storage.write(
-      _storageKey,
+      _storageEntry,
       jsonEncode(values.map((OfflineMutation item) => item.toJson()).toList()),
     );
   }
