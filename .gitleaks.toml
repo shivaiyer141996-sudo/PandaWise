@@ -1,7 +1,9 @@
 [extend]
 useDefault = true
 
-[[allowlists]]
+[allowlist]
 description = "Historical PandaWise offline-queue label; local key name, not a credential"
+condition = "AND"
+regexTarget = "line"
 paths = ['''apps/mobile/lib/core/offline/offline_mutation_store\.dart''']
-regexes = ['''pandawise\.pending_mutations\.v1''']
+regexes = ['''static const String _storageKey = 'pandawise\.pending_mutations\.v1';''']
