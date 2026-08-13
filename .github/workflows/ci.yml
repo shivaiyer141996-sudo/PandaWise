@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       apps_script_url:
-        description: Deployed PandaWise Google Apps Script Web App URL ending in /exec
-        required: true
+        description: Optional deployed PandaWise Apps Script /exec URL override
+        required: false
+        default: ""
         type: string
   pull_request:
   push:
@@ -83,10 +84,7 @@ jobs:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
 
   android:
-    name: Functional Android APK
-    if: >-
-      ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.apps_script_url != '') ||
-          vars.PANDAWISE_APPS_SCRIPT_URL != '' }}
+    name: Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -101,12 +99,22 @@ jobs:
         with:
           flutter-version: 3.47.0
           cache: true
-      - name: Validate Apps Script deployment URL
+      - name: Classify backend configuration
         run: |
-          case "$PANDAWISE_APPS_SCRIPT_URL" in
-            https://script.google.com/macros/s/*/exec) ;;
-            *) echo "A deployed Google Apps Script /exec URL is required." >&2; exit 1 ;;
-          esac
+          if [ -n "$PANDAWISE_APPS_SCRIPT_URL" ]; then
+            case "$PANDAWISE_APPS_SCRIPT_URL" in
+              https://script.google.com/macros/s/*/exec) ;;
+              *) echo "The optional override must be a deployed Google Apps Script /exec URL." >&2; exit 1 ;;
+            esac
+            echo "PANDAWISE_BACKEND_CONFIGURED=true" >> "$GITHUB_ENV"
+            echo "PANDAWISE_BACKEND_SOURCE=workflow-override" >> "$GITHUB_ENV"
+          elif grep -Eq "defaultValue: 'https://script.google.com/macros/s/.+/exec'" lib/core/config/config.dart; then
+            echo "PANDAWISE_BACKEND_CONFIGURED=true" >> "$GITHUB_ENV"
+            echo "PANDAWISE_BACKEND_SOURCE=config.dart" >> "$GITHUB_ENV"
+          else
+            echo "PANDAWISE_BACKEND_CONFIGURED=false" >> "$GITHUB_ENV"
+            echo "PANDAWISE_BACKEND_SOURCE=deployment-pending" >> "$GITHUB_ENV"
+          fi
       - name: Generate Android runner when absent
         run: |
           if [ ! -d android ]; then
@@ -115,10 +123,14 @@ jobs:
             cp -R "$pandawise_runner_dir/android" .
           fi
       - run: flutter pub get
-      - name: Build debug-signed functional APK
-        run: >-
-          flutter build apk --debug
-          --dart-define=PANDAWISE_APPS_SCRIPT_URL="$PANDAWISE_APPS_SCRIPT_URL"
+      - name: Build debug-signed APK
+        run: |
+          if [ -n "$PANDAWISE_APPS_SCRIPT_URL" ]; then
+            flutter build apk --debug \
+              --dart-define=PANDAWISE_APPS_SCRIPT_URL="$PANDAWISE_APPS_SCRIPT_URL"
+          else
+            flutter build apk --debug
+          fi
       - name: Record artifact evidence
         run: |
           pandawise_artifact_dir="build/app/outputs/flutter-apk"
@@ -131,11 +143,12 @@ jobs:
             echo "commit=$GITHUB_SHA"
             echo "ref=$GITHUB_REF_NAME"
             echo "workflow_run=$GITHUB_RUN_ID"
-            echo "apps_script_url=$PANDAWISE_APPS_SCRIPT_URL"
+            echo "backend_configured=$PANDAWISE_BACKEND_CONFIGURED"
+            echo "backend_configuration_source=$PANDAWISE_BACKEND_SOURCE"
             echo "apk_sha256=$pandawise_apk_checksum"
             echo "built_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           } > "$pandawise_artifact_dir/sprint-11-manifest.txt"
-      - name: Upload functional APK
+      - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pandawise-sprint-11-android

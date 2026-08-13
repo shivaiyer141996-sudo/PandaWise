@@ -1,6 +1,8 @@
 # Google Apps Script deployment guide
 
-This creates the free PandaWise backend and the only URL embedded in the APK.
+This is the one-time manual procedure for creating the free PandaWise backend.
+The complete Apps Script source remains versioned in GitHub; deployment is not
+performed by GitHub Actions, a Cloud Browser or any other automated session.
 
 ## 1. Create the project
 
@@ -69,16 +71,22 @@ On a phone browser, open:
 Each must show JSON with `"ok":true`. Bootstrap should include Chennai schools,
 three Release 1 age groups, languages, skills, passions and avatar options.
 
-## 6. Build the functional APK in GitHub
+## 6. Hand off the URL and let GitHub build
 
-1. In GitHub, open **Actions → CI → Run workflow**.
-2. Paste the exact `/exec` URL into `apps_script_url`.
-3. Run the workflow on the Sprint 11 branch.
+1. Paste only the exact `/exec` URL into the PandaWise development conversation.
+2. The maintainer updates the single default in
+   `apps/mobile/lib/core/config/config.dart`, commits it to the milestone branch,
+   and pushes it.
+3. The push automatically runs GitHub Actions; no browser session or manual
+   workflow run is required for APK generation.
 4. Download `pandawise-sprint-11-android` after all checks pass.
-5. Verify the SHA-256 in the artifact manifest before installation.
+5. Verify the SHA-256 and `backend_configured=true` in the artifact manifest.
 
-For automatic builds, set the non-secret repository variable
-`PANDAWISE_APPS_SCRIPT_URL` to the same `/exec` URL.
+Every CI run also produces an installable pre-deployment APK. Its manifest says
+`backend_configured=false`; it is suitable for installation/UI smoke testing but
+cannot perform server-backed registration or login until the one-time URL handoff.
+The optional workflow input and repository variable remain environment overrides,
+not requirements for normal builds.
 
 ## Updating the backend
 

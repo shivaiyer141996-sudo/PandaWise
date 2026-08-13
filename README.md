@@ -56,9 +56,11 @@ npm run pilot:readiness
 cd apps/mobile && flutter pub get && flutter analyze && flutter test
 ```
 
-GitHub Actions builds a functional debug APK only when a real deployed Web App URL
-is supplied through the `PANDAWISE_APPS_SCRIPT_URL` repository variable or the
-manual workflow input. It never builds an APK with a dummy backend URL.
+GitHub Actions builds and uploads a debug APK on every pull request and milestone
+branch push. Before the one-time Apps Script deployment, the artifact manifest says
+`backend_configured=false`; after the real URL is stored in `config.dart`, the next
+push produces the functional APK automatically. No dummy backend URL, Cloud Browser
+session or manual APK build is used.
 
 No Apps Script secret, Google credential, password, session token or family PII
 belongs in this repository or in an APK.
