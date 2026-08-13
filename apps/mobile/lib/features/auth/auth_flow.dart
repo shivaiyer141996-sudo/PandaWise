@@ -132,6 +132,31 @@ class _LoginFormState extends State<_LoginForm> {
             'Continue your child’s growth journey.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          if (widget.session.demoAvailable) ...<Widget>[
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: widget.session.busy ? null : _startDemo,
+              icon: const Icon(Icons.explore_outlined),
+              label: const Text('Explore Demo Mode'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'No account or internet required',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            const Row(
+              children: <Widget>[
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('or sign in'),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
           TextFormField(
             controller: _email,
@@ -177,31 +202,6 @@ class _LoginFormState extends State<_LoginForm> {
             onPressed: widget.onSignup,
             child: const Text('Create a PandaWise account'),
           ),
-          if (widget.session.demoAvailable) ...<Widget>[
-            const SizedBox(height: 8),
-            const Row(
-              children: <Widget>[
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
-                  child: Text('or'),
-                ),
-                Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: widget.session.busy ? null : _startDemo,
-              icon: const Icon(Icons.explore_outlined),
-              label: const Text('Explore Demo Mode'),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No account or internet required',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
         ],
       ),
     );

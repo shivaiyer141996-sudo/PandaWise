@@ -72,8 +72,6 @@ void main() {
     expect(find.text('Explore Demo Mode'), findsOneWidget);
     expect(find.text('No account or internet required'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Explore Demo Mode'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Explore Demo Mode'));
     await tester.pumpAndSettle();
 
@@ -86,6 +84,85 @@ void main() {
     expect(find.text('Journey'), findsOneWidget);
     expect(find.text('Progress'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
+  });
+
+  testWidgets('Demo Mode opens main and seeded detail screens offline', (
+    WidgetTester tester,
+  ) async {
+    final DemoPandaWiseApi api = DemoPandaWiseApi();
+    final SessionController session = SessionController(
+      api: api,
+      tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
+      demoAvailable: true,
+    );
+    await tester.pumpWidget(PandaWiseApp(api: api, session: session));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore Demo Mode'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.child_care_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('My Children'), findsOneWidget);
+    await tester.tap(find.text('Aarav'));
+    await tester.pumpAndSettle();
+    expect(find.text('Child Profile'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.route_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aarav'));
+    await tester.pumpAndSettle();
+    expect(find.text('21-Day Journey'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.insights_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aarav'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aarav’s Progress'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Skill Analytics'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Skill Analytics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Skill Analytics'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+    expect(find.text('Priya Sharma'), findsOneWidget);
+    final Finder settingsLink = find.text('Settings');
+    await tester.ensureVisible(settingsLink);
+    await tester.drag(
+      find.ancestor(of: settingsLink, matching: find.byType(Scrollable)).first,
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(settingsLink);
+    await tester.pumpAndSettle();
+    expect(find.text('Privacy and consent'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notification Centre'), findsOneWidget);
+    expect(find.text('Today’s mission is ready'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
   });
 }
 

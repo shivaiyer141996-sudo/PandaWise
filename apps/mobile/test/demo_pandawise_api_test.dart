@@ -38,9 +38,19 @@ void main() {
       );
       expect(progress.assessmentHistory, hasLength(2));
       expect(progress.skillTrends, isNotEmpty);
+      expect(progress.actions.nextAction, 'CONTINUE_JOURNEY');
 
       expect((await api.getPlans(auth.token)).plans, hasLength(3));
       expect((await api.getNotifications(auth.token)).items, isNotEmpty);
+
+      await api.changePlan(auth.token, 'EXPLORER');
+      final ChildProgressView explorerProgress = await api.getChildProgress(
+        auth.token,
+        'DEMO_CHILD_001',
+      );
+      expect(explorerProgress.entitlements.growthTrackerEnabled, isFalse);
+      expect(explorerProgress.skillTrends, isEmpty);
+      expect(explorerProgress.assessmentHistory, hasLength(1));
     });
 
     test('keeps child, assessment, mission, and settings writes in memory',
@@ -63,6 +73,10 @@ void main() {
         ),
       );
       expect((await api.getChildren(auth.token)), hasLength(2));
+      expect(
+        (await api.getChildProgress(auth.token, child.id)).actions.nextAction,
+        'DEVELOPMENT_CHECK',
+      );
 
       await api.selectPassions(
         auth.token,
@@ -88,6 +102,10 @@ void main() {
       expect(
         (await api.completeAssessment(auth.token, assessment.id)).growScore,
         greaterThan(0),
+      );
+      expect(
+        (await api.getChildProgress(auth.token, child.id)).actions.nextAction,
+        'START_JOURNEY',
       );
 
       JourneyView journey = await api.createJourney(
@@ -127,6 +145,10 @@ void main() {
       expect(
         (await api.changePlan(auth.token, 'GROWTH')).subscriptionPlanName,
         'Growth',
+      );
+      expect(
+        (await api.getChildProgress(auth.token, child.id)).actions.nextAction,
+        'CONTINUE_JOURNEY',
       );
       expect(
         (await api.applyReferral(auth.token, 'friend-2026')).referralStatus,

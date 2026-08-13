@@ -406,14 +406,49 @@ class DemoPandaWiseApi implements PandaWiseApi, PandaWiseDemoApi {
     final String? assessmentId = _latestAssessmentByChild[childId];
     final GrowScoreReport? report =
         assessmentId == null ? null : _reports[assessmentId];
+    final PlanOption plan = _plans.firstWhere(
+      (PlanOption item) => item.planId == _parent.subscriptionPlanId,
+    );
+    final String nextAction = report == null
+        ? 'DEVELOPMENT_CHECK'
+        : journey == null
+            ? 'START_JOURNEY'
+            : journey.status == 'Active' || journey.status == 'Paused'
+                ? 'CONTINUE_JOURNEY'
+                : journey.reassessmentUnlocked
+                    ? 'REASSESS'
+                    : 'VIEW_PROGRESS';
+    final List<AssessmentHistoryItem> history = report == null
+        ? <AssessmentHistoryItem>[]
+        : <AssessmentHistoryItem>[
+            AssessmentHistoryItem(
+              assessmentId: 'DEMO_ASSESSMENT_PREVIOUS',
+              sequence: 1,
+              completedAt: '2026-05-10T10:30:00.000Z',
+              growScore: report.growScore - 4,
+              scoreBand: 'Growing',
+              journeyStatus: 'Completed',
+              journeyCompletionPercent: 100,
+            ),
+            AssessmentHistoryItem(
+              assessmentId: report.assessmentId,
+              sequence: 2,
+              completedAt: '2026-08-10T10:30:00.000Z',
+              growScore: report.growScore,
+              scoreBand: report.scoreBandLabel,
+              changeFromPrevious: 4,
+              journeyStatus: journey?.status,
+              journeyCompletionPercent: journey?.completionPercent,
+            ),
+          ];
     return ChildProgressView(
       entitlements: ProgressEntitlements(
-        planId: _parent.subscriptionPlanId,
-        planName: _parent.subscriptionPlanName,
-        growthTrackerEnabled: true,
-        assessmentHistoryAccess: 'Full',
-        assessmentComparison: 'Enabled',
-        advancedAnalyticsEnabled: true,
+        planId: plan.planId,
+        planName: plan.planName,
+        growthTrackerEnabled: plan.growthTrackerEnabled,
+        assessmentHistoryAccess: plan.assessmentHistoryAccess,
+        assessmentComparison: plan.assessmentComparison,
+        advancedAnalyticsEnabled: plan.advancedAnalyticsEnabled,
       ),
       assessment: AssessmentProgressSnapshot(
         latestAssessmentId: assessmentId,
@@ -436,36 +471,16 @@ class DemoPandaWiseApi implements PandaWiseApi, PandaWiseDemoApi {
         streak: journey?.streak ?? 0,
         points: (journey?.missionsCompleted ?? 0) * 10,
       ),
-      skillTrends: _skillTrends(report),
-      assessmentHistory: report == null
-          ? <AssessmentHistoryItem>[]
-          : <AssessmentHistoryItem>[
-              AssessmentHistoryItem(
-                assessmentId: 'DEMO_ASSESSMENT_PREVIOUS',
-                sequence: 1,
-                completedAt: '2026-05-10T10:30:00.000Z',
-                growScore: report.growScore - 4,
-                scoreBand: 'Growing',
-                journeyStatus: 'Completed',
-                journeyCompletionPercent: 100,
-              ),
-              AssessmentHistoryItem(
-                assessmentId: report.assessmentId,
-                sequence: 2,
-                completedAt: '2026-08-10T10:30:00.000Z',
-                growScore: report.growScore,
-                scoreBand: report.scoreBandLabel,
-                changeFromPrevious: 4,
-                journeyStatus: journey?.status,
-                journeyCompletionPercent: journey?.completionPercent,
-              ),
-            ],
+      skillTrends: plan.growthTrackerEnabled ? _skillTrends(report) : const [],
+      assessmentHistory: plan.assessmentHistoryAccess == 'Latest Only'
+          ? history.length <= 1
+              ? history
+              : <AssessmentHistoryItem>[history.last]
+          : history,
       actions: ProgressActions(
         canReassess: journey?.reassessmentUnlocked ?? false,
         canStartJourney: report != null && journey == null,
-        nextAction: journey == null
-            ? 'Start a growth journey'
-            : 'Complete today’s mission',
+        nextAction: nextAction,
       ),
     );
   }
