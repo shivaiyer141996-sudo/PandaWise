@@ -39,14 +39,20 @@ class ProgressTab extends StatelessWidget {
                     children: <Widget>[
                       const CircleAvatar(
                         backgroundColor: Color(0xFFEFF6FF),
-                        child: Icon(Icons.insights_rounded, color: PandaWiseColors.blue),
+                        child: Icon(
+                          Icons.insights_rounded,
+                          color: PandaWiseColors.blue,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text(child.displayName, style: Theme.of(context).textTheme.titleMedium),
+                            Text(
+                              child.displayName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
                             Text(
                               child.currentGrowScore == null
                                   ? 'Complete a Development Check to set a baseline'
@@ -78,13 +84,15 @@ class ProgressDashboardScreen extends StatefulWidget {
   final ChildProfile child;
 
   @override
-  State<ProgressDashboardScreen> createState() => _ProgressDashboardScreenState();
+  State<ProgressDashboardScreen> createState() =>
+      _ProgressDashboardScreenState();
 }
 
 class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
   late Future<ChildProgressView?> _progress = _load();
 
-  Future<ChildProgressView?> _load() => widget.session.getChildProgress(widget.child.id);
+  Future<ChildProgressView?> _load() =>
+      widget.session.getChildProgress(widget.child.id);
 
   Future<void> _refresh() async {
     await widget.session.refreshChildren();
@@ -133,7 +141,9 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
         );
         break;
       case 'CONTINUE_JOURNEY':
-        final JourneyView? journey = await widget.session.getCurrentJourney(widget.child.id);
+        final JourneyView? journey = await widget.session.getCurrentJourney(
+          widget.child.id,
+        );
         if (!mounted) return;
         if (journey == null) {
           _showError();
@@ -167,13 +177,17 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
       appBar: AppBar(title: Text('${widget.child.displayName}’s Progress')),
       body: FutureBuilder<ChildProgressView?>(
         future: _progress,
-        builder: (BuildContext context, AsyncSnapshot<ChildProgressView?> snapshot) {
+        builder:
+            (BuildContext context, AsyncSnapshot<ChildProgressView?> snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
           final ChildProgressView? progress = snapshot.data;
           if (progress == null) {
-            return _ProgressErrorState(message: widget.session.error, onRetry: _refresh);
+            return _ProgressErrorState(
+              message: widget.session.error,
+              onRetry: _refresh,
+            );
           }
           return RefreshIndicator(
             onRefresh: _refresh,
@@ -192,7 +206,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                   style: TextStyle(color: PandaWiseColors.muted),
                 ),
                 const SizedBox(height: 24),
-                Text('Mission activity', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'Mission activity',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 10),
                 _MissionActivityCard(activity: progress.activity),
                 const SizedBox(height: 8),
@@ -207,7 +224,10 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Icon(Icons.lock_outline_rounded, color: Color(0xFFD97706)),
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          color: Color(0xFFD97706),
+                        ),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -232,7 +252,8 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                 OutlinedButton.icon(
                   onPressed: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => AssessmentHistoryScreen(progress: progress),
+                      builder: (_) =>
+                          AssessmentHistoryScreen(progress: progress),
                     ),
                   ),
                   icon: const Icon(Icons.history_rounded),
@@ -242,8 +263,12 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen> {
                   const SizedBox(height: 20),
                   FilledButton.icon(
                     onPressed: () => _openNextAction(progress),
-                    icon: Icon(_nextActionIcon(progress.actions.nextAction)),
-                    label: Text(_nextActionLabel(progress.actions.nextAction)),
+                    icon: Icon(
+                      _nextActionIcon(progress.actions.nextAction),
+                    ),
+                    label: Text(
+                      _nextActionLabel(progress.actions.nextAction),
+                    ),
                   ),
                 ],
               ],
@@ -273,7 +298,8 @@ class SkillAnalyticsScreen extends StatelessWidget {
                   itemCount: progress.skillTrends.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (BuildContext context, int index) {
-                    final SkillProgressTrend trend = progress.skillTrends[index];
+                    final SkillProgressTrend trend =
+                        progress.skillTrends[index];
                     return PandaWiseCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -283,7 +309,8 @@ class SkillAnalyticsScreen extends StatelessWidget {
                               Expanded(
                                 child: Text(
                                   trend.name,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                               ),
                               Text(
@@ -297,7 +324,9 @@ class SkillAnalyticsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           LinearProgressIndicator(
-                            value: (trend.latestScore / 100).clamp(0, 1).toDouble(),
+                            value: (trend.latestScore / 100)
+                                .clamp(0, 1)
+                                .toDouble(),
                             minHeight: 8,
                           ),
                           const SizedBox(height: 12),
@@ -351,7 +380,8 @@ class AssessmentHistoryScreen extends StatelessWidget {
           if (progress.assessmentHistory.isEmpty)
             const _NoAssessmentState()
           else
-            for (final AssessmentHistoryItem item in progress.assessmentHistory) ...<Widget>[
+            for (final AssessmentHistoryItem item
+                in progress.assessmentHistory) ...<Widget>[
               PandaWiseCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,13 +396,15 @@ class AssessmentHistoryScreen extends StatelessWidget {
                         ),
                         Text(
                           item.growScore?.round().toString() ?? '—',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: PandaWiseColors.blue,
-                              ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(color: PandaWiseColors.blue),
                         ),
                       ],
                     ),
-                    if (item.completedAt != null) Text(_dateLabel(item.completedAt!)),
+                    if (item.completedAt != null)
+                      Text(_dateLabel(item.completedAt!)),
                     if (item.changeFromPrevious != null) ...<Widget>[
                       const SizedBox(height: 8),
                       Text(_changeLabel(item.changeFromPrevious!)),
@@ -410,13 +442,17 @@ class _AssessmentGrowthCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
-                child: Text('Current GrowScore', style: Theme.of(context).textTheme.titleMedium),
+                child: Text(
+                  'Current GrowScore',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
               Text(
                 snapshot.latestGrowScore?.round().toString() ?? '—',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: PandaWiseColors.blue,
-                    ),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineLarge
+                    ?.copyWith(color: PandaWiseColors.blue),
               ),
             ],
           ),
@@ -447,7 +483,10 @@ class _MissionActivityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('${activity.status} journey', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            '${activity.status} journey',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: (activity.completionPercent / 100).clamp(0, 1).toDouble(),
@@ -501,9 +540,16 @@ class _ProgressErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(Icons.cloud_off_rounded, size: 56, color: PandaWiseColors.blue),
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 56,
+              color: PandaWiseColors.blue,
+            ),
             const SizedBox(height: 12),
-            Text(message ?? 'Progress is unavailable right now.', textAlign: TextAlign.center),
+            Text(
+              message ?? 'Progress is unavailable right now.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             OutlinedButton(onPressed: onRetry, child: const Text('Try Again')),
           ],
@@ -554,14 +600,19 @@ class _NoAssessmentState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.all(24),
-      child: Text('No completed Development Checks yet.', textAlign: TextAlign.center),
+      child: Text(
+        'No completed Development Checks yet.',
+        textAlign: TextAlign.center,
+      ),
     );
   }
 }
 
 String _changeLabel(double value) {
-  if (value > 0) return '+${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)} since the previous check';
-  if (value < 0) return '${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)} since the previous check';
+  if (value > 0)
+    return '+${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)} since the previous check';
+  if (value < 0)
+    return '${value.toStringAsFixed(value % 1 == 0 ? 0 : 1)} since the previous check';
   return 'Steady since the previous check';
 }
 
@@ -569,8 +620,18 @@ String _dateLabel(String timestamp) {
   final DateTime? date = DateTime.tryParse(timestamp);
   if (date == null) return timestamp;
   const List<String> months = <String>[
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   return '${date.day} ${months[date.month - 1]} ${date.year}';
 }

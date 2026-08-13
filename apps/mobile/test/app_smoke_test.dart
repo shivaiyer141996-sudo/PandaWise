@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pandawise_mobile/app.dart';
+import 'package:pandawise_mobile/core/api/demo_pandawise_api.dart';
 import 'package:pandawise_mobile/core/api/pandawise_api.dart';
 import 'package:pandawise_mobile/core/models/models.dart';
+import 'package:pandawise_mobile/core/offline/offline_mutation_store.dart';
 import 'package:pandawise_mobile/core/session/session_controller.dart';
 import 'package:pandawise_mobile/core/session/token_store.dart';
 
 void main() {
-  testWidgets('shows login after restoring an empty session', (WidgetTester tester) async {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('shows login after restoring an empty session', (
+    WidgetTester tester,
+  ) async {
     final _FakeApi api = _FakeApi();
     final SessionController session = SessionController(
       api: api,
       tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
     );
 
     await tester.pumpWidget(PandaWiseApp(api: api, session: session));
@@ -21,11 +28,14 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
   });
 
-  testWidgets('logs in and shows the Sprint 1 dashboard', (WidgetTester tester) async {
+  testWidgets('logs in and shows the Sprint 1 dashboard', (
+    WidgetTester tester,
+  ) async {
     final _FakeApi api = _FakeApi();
     final SessionController session = SessionController(
       api: api,
       tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
     );
     await tester.pumpWidget(PandaWiseApp(api: api, session: session));
     await tester.pumpAndSettle();
@@ -44,6 +54,116 @@ void main() {
     expect(find.text('Progress'), findsOneWidget);
     expect(find.text('Profile'), findsOneWidget);
   });
+
+  testWidgets('enters backend-free Demo Mode from login', (
+    WidgetTester tester,
+  ) async {
+    final DemoPandaWiseApi api = DemoPandaWiseApi();
+    final SessionController session = SessionController(
+      api: api,
+      tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
+      demoAvailable: true,
+    );
+
+    await tester.pumpWidget(PandaWiseApp(api: api, session: session));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Demo Mode'), findsOneWidget);
+    expect(find.text('No account or internet required'), findsOneWidget);
+
+    await tester.tap(find.text('Explore Demo Mode'));
+    await tester.pumpAndSettle();
+
+    expect(session.isDemoMode, isTrue);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    expect(find.text('Hi Priya 👋'), findsWidgets);
+    expect(find.text('Aarav'), findsWidgets);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Children'), findsOneWidget);
+    expect(find.text('Journey'), findsOneWidget);
+    expect(find.text('Progress'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+  });
+
+  testWidgets('Demo Mode opens main and seeded detail screens offline', (
+    WidgetTester tester,
+  ) async {
+    final DemoPandaWiseApi api = DemoPandaWiseApi();
+    final SessionController session = SessionController(
+      api: api,
+      tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
+      demoAvailable: true,
+    );
+    await tester.pumpWidget(PandaWiseApp(api: api, session: session));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore Demo Mode'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.child_care_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('My Children'), findsOneWidget);
+    await tester.tap(find.text('Aarav'));
+    await tester.pumpAndSettle();
+    expect(find.text('Child Profile'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.route_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aarav'));
+    await tester.pumpAndSettle();
+    expect(find.text('21-Day Journey'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.insights_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Aarav'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aarav’s Progress'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Skill Analytics'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Skill Analytics'));
+    await tester.pumpAndSettle();
+    expect(find.text('Skill Analytics'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+    expect(find.text('Priya Sharma'), findsOneWidget);
+    final Finder settingsLink = find.text('Settings');
+    await tester.ensureVisible(settingsLink);
+    await tester.drag(
+      find.ancestor(of: settingsLink, matching: find.byType(Scrollable)).first,
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(settingsLink);
+    await tester.pumpAndSettle();
+    expect(find.text('Privacy and consent'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notification Centre'), findsOneWidget);
+    expect(find.text('Today’s mission is ready'), findsOneWidget);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+  });
 }
 
 class _FakeApi implements PandaWiseApi {
@@ -54,6 +174,8 @@ class _FakeApi implements PandaWiseApi {
     parentType: 'Father',
     mobileNumber: '9876543210',
     subscriptionPlanId: 'PLN001',
+    subscriptionPlanName: 'Explorer',
+    weeklySummaryAvailable: false,
     preferredLanguageId: 'LNG001',
     dailyTimeCommitment: '15_MIN',
     pushNotification: false,
@@ -120,7 +242,10 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
-  Future<GrowScoreReport> completeAssessment(String token, String assessmentId) {
+  Future<GrowScoreReport> completeAssessment(
+    String token,
+    String assessmentId,
+  ) {
     throw UnimplementedError();
   }
 
@@ -130,12 +255,18 @@ class _FakeApi implements PandaWiseApi {
   }
 
   @override
-  Future<GrowScoreReport> getAssessmentReport(String token, String assessmentId) {
+  Future<GrowScoreReport> getAssessmentReport(
+    String token,
+    String assessmentId,
+  ) {
     throw UnimplementedError();
   }
 
   @override
-  Future<GrowScoreReport> getLatestGrowScoreReport(String token, String childId) {
+  Future<GrowScoreReport> getLatestGrowScoreReport(
+    String token,
+    String childId,
+  ) {
     throw UnimplementedError();
   }
 
@@ -161,20 +292,33 @@ class _FakeApi implements PandaWiseApi {
       schools: <MasterOption>[],
       grades: <MasterOption>[],
       timeCommitments: <String>['15_MIN'],
+      parentTypes: <String>['Father'],
+      genders: <String>['Prefer not to say'],
+      avatars: <MasterOption>[
+        MasterOption(id: 'pando-smile', name: 'Pando smile'),
+      ],
     );
   }
 
   @override
-  Future<List<ChildProfile>> getChildren(String token) async => <ChildProfile>[];
+  Future<List<ChildProfile>> getChildren(String token) async =>
+      <ChildProfile>[];
 
   @override
-  Future<List<String>> getSelectedPassions(String token, String childId) async => <String>[];
+  Future<List<String>> getSelectedPassions(
+    String token,
+    String childId,
+  ) async =>
+      <String>[];
 
   @override
   Future<ParentProfile> getMe(String token) async => _parent;
 
   @override
-  Future<AuthResult> login({required String email, required String password}) async {
+  Future<AuthResult> login({
+    required String email,
+    required String password,
+  }) async {
     return const AuthResult(token: 'test-token', parent: _parent);
   }
 
@@ -182,7 +326,10 @@ class _FakeApi implements PandaWiseApi {
   Future<void> requestPasswordReset(String email) async {}
 
   @override
-  Future<ParentProfile> updateMarketingConsent(String token, bool marketingConsent) {
+  Future<ParentProfile> updateMarketingConsent(
+    String token,
+    bool marketingConsent,
+  ) {
     throw UnimplementedError();
   }
 
@@ -223,7 +370,8 @@ class _FakeApi implements PandaWiseApi {
     String token,
     String childId,
     List<String> passionIds,
-  ) async => passionIds;
+  ) async =>
+      passionIds;
 
   @override
   Future<AssessmentDetail> startAssessment(String token, String childId) {

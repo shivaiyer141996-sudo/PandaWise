@@ -1,62 +1,45 @@
-# Google Sheets Operations Runbook
+# Google Sheets operations runbook
 
-PandaWise Release 1.0 uses Google Sheets as the business-data provider. The API is
-the only production component permitted to access it.
+PandaWise Release 1 uses Google Sheets as its only database. Only the deployed
+Apps Script project should perform app reads and writes.
 
-## Readiness and normal operation
+## Normal operation
 
-- `GET /health` proves the API process is alive and never calls Google.
-- `GET /ready` makes a bounded master-data read. It returns `200 ready` only when
-  the provider and workbook contract are readable; otherwise it returns `503`.
-- Google API status `408`, `429` and `5xx` responses are retried up to
-  `GOOGLE_SHEETS_MAX_ATTEMPTS` with exponential backoff and jitter.
-- Authentication/permission (`401`/`403`) and workbook-contract errors are not
-  retried because repetition cannot repair them.
+- Open the Web App with `?route=/health&method=GET` to verify request handling.
+- Open it with `?route=/ready&method=GET` to validate the spreadsheet ID, required
+  tabs, required headers and active master content.
+- Verify register/login and one synthetic parent journey after each deployment.
+- Confirm writes appear immediately in Parent, Child, Assessment Response,
+  Assessment Result/Skill Score, Journey, Mission Completion and Audit tabs.
 
-Recommended production defaults:
+## Workbook administration
 
-```text
-GOOGLE_SHEETS_MAX_ATTEMPTS=3
-GOOGLE_SHEETS_RETRY_BASE_MS=200
-```
+1. Make a dated native Drive copy before changing headers, validations or formulas.
+2. Preserve stable IDs and exact header names.
+3. Configure skills, weights, questions, missions, plans, badges and thresholds only
+   in their master tabs.
+4. Keep the ten active Skill weights at 100 in total.
+5. Keep Release 1 age groups limited to 3–6, 6–9 and 9–12.
+6. Keep Chennai schools active in School Master; the app never accepts free text.
+7. Run `verifyPandaWiseDeployment` in Apps Script after a change.
 
-## Quota or provider incident
+## Incident recovery
 
-1. Confirm `/health` is `200` and `/ready` is `503`; do not restart a healthy API
-   repeatedly because this adds provider load.
-2. Check structured API logs for the operation name, attempt count and provider
-   status. Logs and client responses intentionally omit sheet values and credentials.
-3. For `429` or `5xx`, allow bounded retries to drain. Reduce client traffic or
-   temporarily pause nonessential administrative writes if errors persist.
-4. For `401` or `403`, verify the configured service-account identity and that the
-   workbook is shared directly with that identity. Rotate credentials only through
-   the deployment secret store.
-5. For a missing-header message, compare the named tab to
-   `docs/master-workbook-contract.md`; restore the expected header without reordering
-   or deleting data rows.
-6. After remediation, require three consecutive `/ready` successes and run the
-   parent-journey smoke path before declaring recovery.
+1. Do not repeatedly redeploy when `/health` works but `/ready` fails.
+2. Inspect Apps Script Executions for a stable error code; do not copy parent or
+   child rows into logs or support chats.
+3. For missing headers or invalid master values, compare the tab with
+   `docs/master-workbook-contract.md` and restore from the latest dated native copy.
+4. For quota or lock errors, pause nonessential testing and let executions drain.
+5. For authorization errors, verify the deploying Google account still owns or can
+   edit the workbook and reauthorize the script if necessary.
+6. Require three consecutive readiness successes and a synthetic end-to-end smoke
+   test before reopening the pilot.
 
-## Capacity rehearsal
+## Security
 
-Before a production launch or major campaign:
-
-1. Copy the workbook and use synthetic, non-child data.
-2. Run read-heavy bootstrap/plan/profile traffic and representative append/update
-   operations against the copy.
-3. Increase load gradually while monitoring p95 response time, `429` rate, retry
-   count and write failures. Never load-test the production family workbook.
-4. Stop if any write is duplicated, p95 exceeds the agreed SLO, or provider errors
-   exceed 1% for five minutes.
-5. Record the tested concurrency, provider quota, results and date in the release
-   evidence. The automated adapter tests cover retry/recovery mechanics; they do not
-   claim a provider quota that was not measured in the target Google Workspace.
-
-## Backup and recovery
-
-- Restrict edit access and use Drive version history for ordinary rollback.
-- Before a schema change, create a dated workbook copy and record its file ID in the
-  change ticket.
-- Restore a damaged tab from that copy, then validate headers and `/ready` before
-  reopening traffic.
-- Never download production child/parent rows to developer machines for debugging.
+- Restrict Sheet editors to named operators.
+- Store `PANDAWISE_AUTH_SECRET` only in Apps Script Script Properties.
+- Never place passwords, tokens or the auth secret in `21_Audit_Log`.
+- Use Drive version history for rollback and a restricted dated copy for backup.
+- Never download live family data to a developer device for debugging.

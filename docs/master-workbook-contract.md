@@ -112,8 +112,8 @@ this document records integration responsibilities and does not duplicate its ro
 
 ## Entitlement headers used in Sprint 4
 
-Subscription plans are resolved by `Plan_ID`. The live tab has no `Record_Status`
-column, so the adapter must not require or fabricate one. Enforcement uses:
+Subscription plans are resolved by `Plan_ID` and filtered by the live
+`Record_Status` column. Enforcement uses:
 `Plan_Name`, `Max_Children`, `Included_Assessments_Per_Year`, `Question_Count`,
 `Skills_Visible`, `Missions_Per_Skill`, `Growth_Tracker_Enabled`,
 `Assessment_History_Access`, `Assessment_Comparison`, `Weekly_Summary_Enabled`,

@@ -3,9 +3,10 @@ name: CI
 on:
   workflow_dispatch:
     inputs:
-      api_base_url:
-        description: Non-secret pilot API base URL embedded in the debug APK
-        required: true
+      apps_script_url:
+        description: Optional deployed PandaWise Apps Script /exec URL override
+        required: false
+        default: ""
         type: string
   pull_request:
   push:
@@ -21,8 +22,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  api:
-    name: API checks
+  apps-script:
+    name: Apps Script checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -33,11 +34,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - name: Package Sprint 11 source ZIP
+        run: git archive --format=zip --output=pandawise-sprint-11-source.zip HEAD
+      - name: Upload source ZIP
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pandawise-sprint-11-source
+          path: pandawise-sprint-11-source.zip
+          if-no-files-found: error
+          retention-days: 30
 
   mobile:
     name: Flutter checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/mobile
@@ -73,19 +83,38 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: false
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
 
-  android-pilot:
-    name: Android pilot artifact
+  android:
+    name: Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/mobile
+    env:
+      PANDAWISE_APPS_SCRIPT_URL: >-
+        ${{ github.event.inputs.apps_script_url || vars.PANDAWISE_APPS_SCRIPT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.0
           cache: true
+      - name: Classify backend configuration
+        run: |
+          if [ -n "$PANDAWISE_APPS_SCRIPT_URL" ]; then
+            case "$PANDAWISE_APPS_SCRIPT_URL" in
+              https://script.google.com/macros/s/*/exec) ;;
+              *) echo "The optional override must be a deployed Google Apps Script /exec URL." >&2; exit 1 ;;
+            esac
+            echo "PANDAWISE_BACKEND_CONFIGURED=true" >> "$GITHUB_ENV"
+            echo "PANDAWISE_BACKEND_SOURCE=workflow-override" >> "$GITHUB_ENV"
+          elif grep -Eq "defaultValue: 'https://script.google.com/macros/s/.+/exec'" lib/core/config/config.dart; then
+            echo "PANDAWISE_BACKEND_CONFIGURED=true" >> "$GITHUB_ENV"
+            echo "PANDAWISE_BACKEND_SOURCE=config.dart" >> "$GITHUB_ENV"
+          else
+            echo "PANDAWISE_BACKEND_CONFIGURED=false" >> "$GITHUB_ENV"
+            echo "PANDAWISE_BACKEND_SOURCE=deployment-pending" >> "$GITHUB_ENV"
+          fi
       - name: Generate Android runner when absent
         run: |
           if [ ! -d android ]; then
@@ -94,37 +123,39 @@ jobs:
             cp -R "$pandawise_runner_dir/android" .
           fi
       - run: flutter pub get
-      - name: Build debug-signed pilot APK
-        env:
-          PANDAWISE_PILOT_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://api.invalid.pandawise.example' }}
-        run: flutter build apk --debug --dart-define=PANDAWISE_API_BASE_URL="$PANDAWISE_PILOT_API_BASE_URL"
-      - name: Record APK checksum
-        run: sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/app/outputs/flutter-apk/app-debug.apk.sha256
-      - name: Create pilot artifact manifest
-        env:
-          PANDAWISE_PILOT_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://api.invalid.pandawise.example' }}
+      - name: Build debug-signed APK
+        run: |
+          if [ -n "$PANDAWISE_APPS_SCRIPT_URL" ]; then
+            flutter build apk --debug \
+              --dart-define=PANDAWISE_APPS_SCRIPT_URL="$PANDAWISE_APPS_SCRIPT_URL"
+          else
+            flutter build apk --debug
+          fi
+      - name: Record artifact evidence
         run: |
           pandawise_artifact_dir="build/app/outputs/flutter-apk"
+          sha256sum "$pandawise_artifact_dir/app-debug.apk" > "$pandawise_artifact_dir/app-debug.apk.sha256"
           pandawise_apk_checksum="$(cut -d ' ' -f1 "$pandawise_artifact_dir/app-debug.apk.sha256")"
           flutter --version > "$pandawise_artifact_dir/flutter-version.txt"
           {
             echo "product=PandaWise"
-            echo "release=1.0.0-rc.1"
+            echo "sprint=11"
             echo "commit=$GITHUB_SHA"
             echo "ref=$GITHUB_REF_NAME"
             echo "workflow_run=$GITHUB_RUN_ID"
-            echo "api_base_url=$PANDAWISE_PILOT_API_BASE_URL"
+            echo "backend_configured=$PANDAWISE_BACKEND_CONFIGURED"
+            echo "backend_configuration_source=$PANDAWISE_BACKEND_SOURCE"
             echo "apk_sha256=$pandawise_apk_checksum"
             echo "built_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          } > "$pandawise_artifact_dir/pilot-manifest.txt"
-      - name: Upload pilot APK
+          } > "$pandawise_artifact_dir/sprint-11-manifest.txt"
+      - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pandawise-1.0.0-pilot-android
+          name: pandawise-sprint-11-android
           path: |
             apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
             apps/mobile/build/app/outputs/flutter-apk/app-debug.apk.sha256
             apps/mobile/build/app/outputs/flutter-apk/flutter-version.txt
-            apps/mobile/build/app/outputs/flutter-apk/pilot-manifest.txt
+            apps/mobile/build/app/outputs/flutter-apk/sprint-11-manifest.txt
           if-no-files-found: error
           retention-days: 30

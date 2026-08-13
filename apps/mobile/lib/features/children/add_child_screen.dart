@@ -23,12 +23,12 @@ class _AddChildScreenState extends State<AddChildScreen> {
   late Future<BootstrapData> _bootstrap;
 
   DateTime? _dateOfBirth;
-  String _gender = 'Prefer Not to Say';
-  String _avatarId = 'pando-smile';
+  String? _gender;
+  String? _avatarId;
   String? _schoolId;
   String? _gradeId;
-  String _languageId = 'LNG001';
-  String _timeCommitment = '15_MIN';
+  String? _languageId;
+  String? _timeCommitment;
 
   @override
   void initState() {
@@ -78,12 +78,12 @@ class _AddChildScreenState extends State<AddChildScreen> {
         nickname: _nickname.text.trim(),
         avatarId: _avatarId,
         dateOfBirth: dob,
-        gender: _gender,
+        gender: _gender!,
         schoolId: _schoolId,
         gradeId: _gradeId,
-        languageId: _languageId,
+        languageId: _languageId!,
         knownInterests: interests,
-        parentTimeCommitment: _timeCommitment,
+        parentTimeCommitment: _timeCommitment!,
       ),
     );
     if (!mounted) return;
@@ -95,7 +95,8 @@ class _AddChildScreenState extends State<AddChildScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -110,7 +111,8 @@ class _AddChildScreenState extends State<AddChildScreen> {
           }
           if (snapshot.hasError || !snapshot.hasData) {
             return _BootstrapError(
-              onRetry: () => setState(() => _bootstrap = widget.api.getBootstrapData()),
+              onRetry: () =>
+                  setState(() => _bootstrap = widget.api.getBootstrapData()),
             );
           }
           return _form(snapshot.data!);
@@ -120,12 +122,29 @@ class _AddChildScreenState extends State<AddChildScreen> {
   }
 
   Widget _form(BootstrapData data) {
-    final List<MasterOption> languages = data.languages.isEmpty
-        ? const <MasterOption>[MasterOption(id: 'LNG001', name: 'English')]
-        : data.languages;
-    final List<String> commitments = data.timeCommitments.isEmpty
-        ? const <String>['10_MIN', '15_MIN', '20_MIN', '30_MIN', 'WEEKENDS_ONLY']
-        : data.timeCommitments;
+    final List<MasterOption> languages = data.languages;
+    final List<String> commitments = data.timeCommitments;
+    if (languages.isEmpty ||
+        commitments.isEmpty ||
+        data.genders.isEmpty ||
+        data.avatars.isEmpty ||
+        data.schools.isEmpty ||
+        data.grades.isEmpty) {
+      return _BootstrapError(
+        onRetry: () =>
+            setState(() => _bootstrap = widget.api.getBootstrapData()),
+      );
+    }
+    _gender = data.genders.contains(_gender) ? _gender : data.genders.first;
+    _avatarId = data.avatars.any((MasterOption item) => item.id == _avatarId)
+        ? _avatarId
+        : data.avatars.first.id;
+    _languageId = languages.any((MasterOption item) => item.id == _languageId)
+        ? _languageId
+        : languages.first.id;
+    _timeCommitment = commitments.contains(_timeCommitment)
+        ? _timeCommitment
+        : commitments.first;
 
     return Form(
       key: _formKey,
@@ -137,16 +156,23 @@ class _AddChildScreenState extends State<AddChildScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Choose an avatar', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Choose an avatar',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 10,
-                  children: <Widget>[
-                    _AvatarChoice(value: 'pando-smile', emoji: '🐼', selected: _avatarId, onSelected: _setAvatar),
-                    _AvatarChoice(value: 'pando-star', emoji: '⭐', selected: _avatarId, onSelected: _setAvatar),
-                    _AvatarChoice(value: 'pando-book', emoji: '📚', selected: _avatarId, onSelected: _setAvatar),
-                    _AvatarChoice(value: 'pando-leaf', emoji: '🌱', selected: _avatarId, onSelected: _setAvatar),
-                  ],
+                  children: data.avatars
+                      .map(
+                        (MasterOption option) => _AvatarChoice(
+                          value: option.id,
+                          label: option.name,
+                          selected: _avatarId!,
+                          onSelected: _setAvatar,
+                        ),
+                      )
+                      .toList(growable: false),
                 ),
               ],
             ),
@@ -156,7 +182,9 @@ class _AddChildScreenState extends State<AddChildScreen> {
             controller: _name,
             textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(labelText: 'Child’s full name'),
-            validator: (String? value) => (value?.trim().length ?? 0) < 2 ? 'Enter your child’s name' : null,
+            validator: (String? value) => (value?.trim().length ?? 0) < 2
+                ? 'Enter your child’s name'
+                : null,
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -182,45 +210,69 @@ class _AddChildScreenState extends State<AddChildScreen> {
           DropdownButtonFormField<String>(
             initialValue: _gender,
             decoration: const InputDecoration(labelText: 'Gender'),
-            items: const <String>['Boy', 'Girl', 'Prefer Not to Say']
-                .map((String value) => DropdownMenuItem<String>(value: value, child: Text(value)))
+            items: data.genders
+                .map(
+                  (String value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  ),
+                )
                 .toList(growable: false),
-            onChanged: (String? value) => setState(() => _gender = value ?? _gender),
+            onChanged: (String? value) => setState(() => _gender = value),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _schoolId ?? '',
             decoration: const InputDecoration(labelText: 'School (optional)'),
             items: <DropdownMenuItem<String>>[
-              const DropdownMenuItem<String>(value: '', child: Text('Not selected')),
+              const DropdownMenuItem<String>(
+                value: '',
+                child: Text('Not selected'),
+              ),
               ...data.schools.map(
-                (MasterOption option) => DropdownMenuItem<String>(value: option.id, child: Text(option.name)),
+                (MasterOption option) => DropdownMenuItem<String>(
+                  value: option.id,
+                  child: Text(option.name),
+                ),
               ),
             ],
-            onChanged: (String? value) => setState(() => _schoolId = value == null || value.isEmpty ? null : value),
+            onChanged: (String? value) => setState(
+              () => _schoolId = value == null || value.isEmpty ? null : value,
+            ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _gradeId ?? '',
             decoration: const InputDecoration(labelText: 'Grade (optional)'),
             items: <DropdownMenuItem<String>>[
-              const DropdownMenuItem<String>(value: '', child: Text('Not selected')),
+              const DropdownMenuItem<String>(
+                value: '',
+                child: Text('Not selected'),
+              ),
               ...data.grades.map(
-                (MasterOption option) => DropdownMenuItem<String>(value: option.id, child: Text(option.name)),
+                (MasterOption option) => DropdownMenuItem<String>(
+                  value: option.id,
+                  child: Text(option.name),
+                ),
               ),
             ],
-            onChanged: (String? value) => setState(() => _gradeId = value == null || value.isEmpty ? null : value),
+            onChanged: (String? value) => setState(
+              () => _gradeId = value == null || value.isEmpty ? null : value,
+            ),
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            initialValue: languages.any((MasterOption item) => item.id == _languageId)
-                ? _languageId
-                : languages.first.id,
+            initialValue: _languageId,
             decoration: const InputDecoration(labelText: 'Preferred language'),
             items: languages
-                .map((MasterOption option) => DropdownMenuItem<String>(value: option.id, child: Text(option.name)))
+                .map(
+                  (MasterOption option) => DropdownMenuItem<String>(
+                    value: option.id,
+                    child: Text(option.name),
+                  ),
+                )
                 .toList(growable: false),
-            onChanged: (String? value) => setState(() => _languageId = value ?? _languageId),
+            onChanged: (String? value) => setState(() => _languageId = value),
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -232,12 +284,20 @@ class _AddChildScreenState extends State<AddChildScreen> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            initialValue: commitments.contains(_timeCommitment) ? _timeCommitment : commitments.first,
-            decoration: const InputDecoration(labelText: 'Family time commitment'),
+            initialValue: _timeCommitment,
+            decoration: const InputDecoration(
+              labelText: 'Family time commitment',
+            ),
             items: commitments
-                .map((String value) => DropdownMenuItem<String>(value: value, child: Text(_commitmentLabel(value))))
+                .map(
+                  (String value) => DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(_commitmentLabel(value)),
+                  ),
+                )
                 .toList(growable: false),
-            onChanged: (String? value) => setState(() => _timeCommitment = value ?? _timeCommitment),
+            onChanged: (String? value) =>
+                setState(() => _timeCommitment = value),
           ),
           const SizedBox(height: 24),
           PandaWiseLoadingButton(
@@ -256,13 +316,13 @@ class _AddChildScreenState extends State<AddChildScreen> {
 class _AvatarChoice extends StatelessWidget {
   const _AvatarChoice({
     required this.value,
-    required this.emoji,
+    required this.label,
     required this.selected,
     required this.onSelected,
   });
 
   final String value;
-  final String emoji;
+  final String label;
   final String selected;
   final ValueChanged<String> onSelected;
 
@@ -271,7 +331,8 @@ class _AvatarChoice extends StatelessWidget {
     return ChoiceChip(
       selected: value == selected,
       onSelected: (_) => onSelected(value),
-      label: Text(emoji, style: const TextStyle(fontSize: 24)),
+      avatar: const Icon(Icons.pets_rounded, size: 18),
+      label: Text(label),
     );
   }
 }
@@ -289,9 +350,16 @@ class _BootstrapError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(Icons.cloud_off_rounded, size: 56, color: PandaWiseColors.warning),
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 56,
+              color: PandaWiseColors.warning,
+            ),
             const SizedBox(height: 16),
-            const Text('We could not load the profile options. Please try again.', textAlign: TextAlign.center),
+            const Text(
+              'We could not load the profile options. Please try again.',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
             OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
           ],
@@ -302,12 +370,12 @@ class _BootstrapError extends StatelessWidget {
 }
 
 String _commitmentLabel(String value) {
-  return switch (value) {
-    '10_MIN' => '10 minutes',
-    '15_MIN' => '15 minutes',
-    '20_MIN' => '20 minutes',
-    '30_MIN' => '30 minutes',
-    'WEEKENDS_ONLY' => 'Weekends only',
-    _ => value,
-  };
+  final List<String> words = value.toLowerCase().split('_');
+  if (words.length == 2 && words.last == 'min') {
+    return '${words.first} minutes';
+  }
+  final String label = words.join(' ');
+  return label.isEmpty
+      ? value
+      : '${label[0].toUpperCase()}${label.substring(1)}';
 }

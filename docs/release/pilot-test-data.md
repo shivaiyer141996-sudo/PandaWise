@@ -6,14 +6,10 @@ family data during pilot testing.
 
 ## Important APK readiness notice
 
-The APK from PR CI run 24 was intentionally built with:
-
-`https://api.invalid.pandawise.example`
-
-It can validate installation, launch and safe network-error handling, but registration,
-login and feature testing cannot work because there is no backend at that address.
-The data below becomes usable after GitHub builds the APK with the approved pilot API
-URL connected to the rehearsal workbook.
+Use this data only with the Sprint 11 artifact named
+`pandawise-sprint-11-android`. Its manifest must contain the deployed Google Apps
+Script URL ending in `/exec`. Registration and feature testing are not valid on an
+install-only artifact or before the Web App health/readiness checks pass.
 
 ## General entry rules
 
@@ -56,7 +52,7 @@ Every password meets the API rule: 8–72 characters with uppercase, lowercase a
 | Passions | Drawing, Music, Nature & Gardening, Acting & Storytelling |
 | Development Check response pattern | Select **Agree** for all 30 questions |
 | Focus areas | Select the first recommended area |
-| Day-1 Mission feedback | Yes; enjoyment 5; Just Right; note “Completed together after dinner.” |
+| Day-1 Mission feedback | Yes; enjoyment 5; Medium; note “Completed together after dinner.” |
 
 Expected: registration and one child succeed, the Development Check completes, a
 GrowScore appears and a 21-day journey is generated from the CPO-approved workbook.
@@ -81,7 +77,7 @@ it is using stale in-memory entitlements instead of the approved Sheet master.
 | Passions | Chess, Coding, Reading, Science |
 | Development Check response pattern | Repeat: Strongly Agree, Agree, Neutral, Disagree, Strongly Disagree |
 | Focus areas | Select all three recommended areas |
-| Day-1 Mission feedback | Partially; enjoyment 3; Challenging; note “Needed one reminder but stayed curious.” |
+| Day-1 Mission feedback | Partial; enjoyment 3; Hard; note “Needed one reminder but stayed curious.” |
 
 Expected: Growth shows 50 questions, all 10 skills, weekly-summary availability and a
 21-day journey. The mixed answers should produce varied skill scores and explainable
@@ -105,7 +101,7 @@ focus recommendations; no exact score is prescribed.
 | Passions | Robotics, Public Speaking, Photography, Chess, Science |
 | Development Check response pattern | Questions 1–25: Strongly Agree; questions 26–50: Neutral |
 | Focus areas | Select three areas, including the lowest recommended score |
-| Day-1 Mission feedback | No; enjoyment 2; Challenging; note “We will retry tomorrow with more time.” |
+| Day-1 Mission feedback | No; enjoyment 2; Hard; note “We will retry tomorrow with more time.” |
 
 Expected: AG03 uses the hybrid respondent bank, shows 50 questions/all 10 skills and
 creates a 21-day Mastery journey.
@@ -200,6 +196,6 @@ For each primary account capture these values without PII screenshots:
 ## Test completion rule
 
 Do not mark device UAT passed merely because the APK installs. Functional test data
-is valid only when the manifest contains the approved pilot API URL, `/health` and
-`/ready` succeed, and the API targets the rehearsal workbook rather than the live
-PandaWise Masters workbook.
+is valid only when the manifest contains the approved Apps Script `/exec` URL,
+health/readiness succeed, and the deployment targets the workbook approved for that
+test run. Use only fictional family data and record every created test ID for cleanup.

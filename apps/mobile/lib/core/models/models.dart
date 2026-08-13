@@ -17,6 +17,8 @@ class ParentProfile {
     required this.termsAcceptedAt,
     required this.referralCode,
     required this.referralStatus,
+    this.subscriptionPlanName = '',
+    this.weeklySummaryAvailable = false,
     this.referredBy,
   });
 
@@ -28,6 +30,8 @@ class ParentProfile {
       parentType: json['parentType'] as String,
       mobileNumber: json['mobileNumber'] as String,
       subscriptionPlanId: json['subscriptionPlanId'] as String,
+      subscriptionPlanName: json['subscriptionPlanName'] as String? ?? '',
+      weeklySummaryAvailable: json['weeklySummaryAvailable'] as bool? ?? false,
       preferredLanguageId: json['preferredLanguageId'] as String,
       dailyTimeCommitment: json['dailyTimeCommitment'] as String,
       pushNotification: json['pushNotification'] as bool,
@@ -49,6 +53,8 @@ class ParentProfile {
   final String parentType;
   final String mobileNumber;
   final String subscriptionPlanId;
+  final String subscriptionPlanName;
+  final bool weeklySummaryAvailable;
   final String preferredLanguageId;
   final String dailyTimeCommitment;
   final bool pushNotification;
@@ -61,6 +67,37 @@ class ParentProfile {
   final String referralCode;
   final String? referredBy;
   final String referralStatus;
+
+  ParentProfile copyWith({
+    String? name,
+    String? parentType,
+    String? mobileNumber,
+    String? preferredLanguageId,
+    String? dailyTimeCommitment,
+  }) {
+    return ParentProfile(
+      id: id,
+      name: name ?? this.name,
+      email: email,
+      parentType: parentType ?? this.parentType,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
+      subscriptionPlanId: subscriptionPlanId,
+      subscriptionPlanName: subscriptionPlanName,
+      weeklySummaryAvailable: weeklySummaryAvailable,
+      preferredLanguageId: preferredLanguageId ?? this.preferredLanguageId,
+      dailyTimeCommitment: dailyTimeCommitment ?? this.dailyTimeCommitment,
+      pushNotification: pushNotification,
+      emailNotification: emailNotification,
+      whatsAppNotification: whatsAppNotification,
+      weeklySummary: weeklySummary,
+      missionReminder: missionReminder,
+      marketingConsent: marketingConsent,
+      termsAcceptedAt: termsAcceptedAt,
+      referralCode: referralCode,
+      referredBy: referredBy,
+      referralStatus: referralStatus,
+    );
+  }
 }
 
 class ChildProfile {
@@ -160,6 +197,10 @@ class BootstrapData {
     required this.schools,
     required this.grades,
     required this.timeCommitments,
+    this.parentTypes = const <String>[],
+    this.genders = const <String>[],
+    this.avatars = const <MasterOption>[],
+    this.badges = const <MasterOption>[],
     this.skills = const <MasterOption>[],
     this.passions = const <MasterOption>[],
   });
@@ -167,7 +208,10 @@ class BootstrapData {
   factory BootstrapData.fromJson(Map<String, dynamic> json) {
     List<MasterOption> options(String key) {
       return (json[key] as List<dynamic>? ?? <dynamic>[])
-          .map((dynamic value) => MasterOption.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                MasterOption.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false);
     }
 
@@ -178,8 +222,15 @@ class BootstrapData {
       grades: options('grades'),
       skills: options('skills'),
       passions: options('passions'),
-      timeCommitments: (json['timeCommitments'] as List<dynamic>? ?? <dynamic>[])
-          .cast<String>(),
+      timeCommitments:
+          (json['timeCommitments'] as List<dynamic>? ?? <dynamic>[])
+              .cast<String>(),
+      parentTypes:
+          (json['parentTypes'] as List<dynamic>? ?? <dynamic>[]).cast<String>(),
+      genders:
+          (json['genders'] as List<dynamic>? ?? <dynamic>[]).cast<String>(),
+      avatars: options('avatars'),
+      badges: options('badges'),
     );
   }
 
@@ -190,6 +241,10 @@ class BootstrapData {
   final List<MasterOption> skills;
   final List<MasterOption> passions;
   final List<String> timeCommitments;
+  final List<String> parentTypes;
+  final List<String> genders;
+  final List<MasterOption> avatars;
+  final List<MasterOption> badges;
 }
 
 class AuthResult {
@@ -244,7 +299,10 @@ class AssessmentOption {
   const AssessmentOption({required this.id, required this.text});
 
   factory AssessmentOption.fromJson(Map<String, dynamic> json) {
-    return AssessmentOption(id: json['id'] as String, text: json['text'] as String);
+    return AssessmentOption(
+      id: json['id'] as String,
+      text: json['text'] as String,
+    );
   }
 
   final String id;
@@ -270,7 +328,10 @@ class AssessmentQuestion {
       respondentType: json['respondentType'] as String,
       displayOrder: json['displayOrder'] as int,
       options: (json['options'] as List<dynamic>)
-          .map((dynamic value) => AssessmentOption.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                AssessmentOption.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false),
       selectedOptionId: json['selectedOptionId'] as String?,
     );
@@ -283,6 +344,18 @@ class AssessmentQuestion {
   final int displayOrder;
   final List<AssessmentOption> options;
   final String? selectedOptionId;
+
+  AssessmentQuestion withSelectedOption(String optionId) {
+    return AssessmentQuestion(
+      id: id,
+      skillId: skillId,
+      text: text,
+      respondentType: respondentType,
+      displayOrder: displayOrder,
+      options: options,
+      selectedOptionId: optionId,
+    );
+  }
 }
 
 class AssessmentDetail {
@@ -298,8 +371,10 @@ class AssessmentDetail {
   });
 
   factory AssessmentDetail.fromJson(Map<String, dynamic> json) {
-    final Map<String, dynamic> assessment = json['assessment'] as Map<String, dynamic>;
-    final Map<String, dynamic> progress = json['progress'] as Map<String, dynamic>;
+    final Map<String, dynamic> assessment =
+        json['assessment'] as Map<String, dynamic>;
+    final Map<String, dynamic> progress =
+        json['progress'] as Map<String, dynamic>;
     return AssessmentDetail(
       id: assessment['id'] as String,
       childId: assessment['childId'] as String,
@@ -308,7 +383,10 @@ class AssessmentDetail {
       status: assessment['status'] as String,
       questionCount: assessment['questionCount'] as int,
       questions: (json['questions'] as List<dynamic>)
-          .map((dynamic value) => AssessmentQuestion.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                AssessmentQuestion.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false),
       answeredCount: progress['answered'] as int,
     );
@@ -322,6 +400,29 @@ class AssessmentDetail {
   final int questionCount;
   final List<AssessmentQuestion> questions;
   final int answeredCount;
+
+  AssessmentDetail withOfflineAnswers(Map<String, String> answers) {
+    if (answers.isEmpty) return this;
+    final List<AssessmentQuestion> updated = questions
+        .map(
+          (AssessmentQuestion question) => answers.containsKey(question.id)
+              ? question.withSelectedOption(answers[question.id]!)
+              : question,
+        )
+        .toList(growable: false);
+    return AssessmentDetail(
+      id: id,
+      childId: childId,
+      depth: depth,
+      respondentMode: respondentMode,
+      status: status,
+      questionCount: questionCount,
+      questions: updated,
+      answeredCount: updated
+          .where((AssessmentQuestion item) => item.selectedOptionId != null)
+          .length,
+    );
+  }
 }
 
 class GrowScoreSkill {
@@ -367,12 +468,17 @@ class GrowScoreReport {
   factory GrowScoreReport.fromJson(Map<String, dynamic> json) {
     List<GrowScoreSkill> skills(String key) {
       return (json[key] as List<dynamic>)
-          .map((dynamic value) => GrowScoreSkill.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                GrowScoreSkill.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false);
     }
 
-    final Map<String, dynamic> assessment = json['assessment'] as Map<String, dynamic>;
-    final Map<String, dynamic> entitlements = json['entitlements'] as Map<String, dynamic>;
+    final Map<String, dynamic> assessment =
+        json['assessment'] as Map<String, dynamic>;
+    final Map<String, dynamic> entitlements =
+        json['entitlements'] as Map<String, dynamic>;
     return GrowScoreReport(
       assessmentId: assessment['id'] as String,
       growScore: (json['growScore'] as num).toDouble(),
@@ -483,13 +589,23 @@ class JourneyView {
     required this.completionPercent,
     required this.streak,
     required this.reassessmentUnlocked,
+    this.completionStatuses = const <String>[],
+    this.difficultyOptions = const <String>[],
+    this.countedCompletionStatuses = const <String>[],
+    this.enjoymentMin = 1,
+    this.enjoymentMax = 5,
     this.today,
   });
 
   factory JourneyView.fromJson(Map<String, dynamic> json) {
-    final Map<String, dynamic> journey = json['journey'] as Map<String, dynamic>;
-    final Map<String, dynamic> progress = json['progress'] as Map<String, dynamic>;
-    final Map<String, dynamic> reassessment = json['reassessment'] as Map<String, dynamic>;
+    final Map<String, dynamic> journey =
+        json['journey'] as Map<String, dynamic>;
+    final Map<String, dynamic> progress =
+        json['progress'] as Map<String, dynamic>;
+    final Map<String, dynamic> reassessment =
+        json['reassessment'] as Map<String, dynamic>;
+    final Map<String, dynamic> feedbackOptions =
+        json['feedbackOptions'] as Map<String, dynamic>? ?? <String, dynamic>{};
     final Map<String, dynamic>? today = json['today'] as Map<String, dynamic>?;
     return JourneyView(
       id: journey['id'] as String,
@@ -501,6 +617,19 @@ class JourneyView {
       completionPercent: (progress['completionPercent'] as num).toDouble(),
       streak: progress['streak'] as int,
       reassessmentUnlocked: reassessment['unlocked'] as bool,
+      completionStatuses:
+          (feedbackOptions['completionStatuses'] as List<dynamic>? ??
+                  <dynamic>[])
+              .cast<String>(),
+      difficultyOptions:
+          (feedbackOptions['difficultyOptions'] as List<dynamic>? ??
+                  <dynamic>[])
+              .cast<String>(),
+      countedCompletionStatuses:
+          (feedbackOptions['countedStatuses'] as List<dynamic>? ?? <dynamic>[])
+              .cast<String>(),
+      enjoymentMin: (feedbackOptions['enjoymentMin'] as num?)?.toInt() ?? 1,
+      enjoymentMax: (feedbackOptions['enjoymentMax'] as num?)?.toInt() ?? 5,
       today: today == null ? null : JourneyToday.fromJson(today),
     );
   }
@@ -514,7 +643,40 @@ class JourneyView {
   final double completionPercent;
   final int streak;
   final bool reassessmentUnlocked;
+  final List<String> completionStatuses;
+  final List<String> difficultyOptions;
+  final List<String> countedCompletionStatuses;
+  final int enjoymentMin;
+  final int enjoymentMax;
   final JourneyToday? today;
+
+  JourneyView copyWith({
+    String? status,
+    int? currentDay,
+    int? missionsCompleted,
+    double? completionPercent,
+    int? streak,
+    bool? reassessmentUnlocked,
+    bool clearToday = false,
+  }) {
+    return JourneyView(
+      id: id,
+      childId: childId,
+      status: status ?? this.status,
+      currentDay: currentDay ?? this.currentDay,
+      missionsPlanned: missionsPlanned,
+      missionsCompleted: missionsCompleted ?? this.missionsCompleted,
+      completionPercent: completionPercent ?? this.completionPercent,
+      streak: streak ?? this.streak,
+      reassessmentUnlocked: reassessmentUnlocked ?? this.reassessmentUnlocked,
+      completionStatuses: completionStatuses,
+      difficultyOptions: difficultyOptions,
+      countedCompletionStatuses: countedCompletionStatuses,
+      enjoymentMin: enjoymentMin,
+      enjoymentMax: enjoymentMax,
+      today: clearToday ? null : today,
+    );
+  }
 }
 
 class WeeklyJourneySummary {
@@ -530,7 +692,8 @@ class WeeklyJourneySummary {
   });
 
   factory WeeklyJourneySummary.fromJson(Map<String, dynamic> json) {
-    final Map<String, dynamic>? skill = json['mostPracticedSkill'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? skill =
+        json['mostPracticedSkill'] as Map<String, dynamic>?;
     return WeeklyJourneySummary(
       week: json['week'] as int,
       completed: json['completed'] as int,
@@ -690,7 +853,10 @@ class SkillProgressTrend {
       latestScore: (json['latestScore'] as num).toDouble(),
       changeFromPrevious: (json['changeFromPrevious'] as num?)?.toDouble(),
       points: (json['points'] as List<dynamic>)
-          .map((dynamic value) => ProgressPoint.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                ProgressPoint.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false),
     );
   }
@@ -716,7 +882,8 @@ class AssessmentHistoryItem {
   });
 
   factory AssessmentHistoryItem.fromJson(Map<String, dynamic> json) {
-    final Map<String, dynamic>? journey = json['journey'] as Map<String, dynamic>?;
+    final Map<String, dynamic>? journey =
+        json['journey'] as Map<String, dynamic>?;
     return AssessmentHistoryItem(
       assessmentId: json['assessmentId'] as String,
       sequence: json['sequence'] as int,
@@ -725,7 +892,8 @@ class AssessmentHistoryItem {
       scoreBand: json['scoreBand'] as String?,
       changeFromPrevious: (json['changeFromPrevious'] as num?)?.toDouble(),
       journeyStatus: journey?['status'] as String?,
-      journeyCompletionPercent: (journey?['completionPercent'] as num?)?.toDouble(),
+      journeyCompletionPercent:
+          (journey?['completionPercent'] as num?)?.toDouble(),
     );
   }
 
@@ -781,12 +949,20 @@ class ChildProgressView {
         json['activitySnapshot'] as Map<String, dynamic>,
       ),
       skillTrends: (json['skillTrends'] as List<dynamic>)
-          .map((dynamic value) => SkillProgressTrend.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                SkillProgressTrend.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false),
       assessmentHistory: (json['assessmentHistory'] as List<dynamic>)
-          .map((dynamic value) => AssessmentHistoryItem.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                AssessmentHistoryItem.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false),
-      actions: ProgressActions.fromJson(json['actions'] as Map<String, dynamic>),
+      actions: ProgressActions.fromJson(
+        json['actions'] as Map<String, dynamic>,
+      ),
     );
   }
 
@@ -894,7 +1070,10 @@ class PlanCatalogue {
     return PlanCatalogue(
       currentPlanId: json['currentPlanId'] as String,
       plans: (json['plans'] as List<dynamic>)
-          .map((dynamic value) => PlanOption.fromJson(value as Map<String, dynamic>))
+          .map(
+            (dynamic value) =>
+                PlanOption.fromJson(value as Map<String, dynamic>),
+          )
           .toList(growable: false),
     );
   }
@@ -942,9 +1121,8 @@ class NotificationCentre {
     return NotificationCentre(
       items: (json['items'] as List<dynamic>)
           .map(
-            (dynamic value) => PandaWiseNotification.fromJson(
-              value as Map<String, dynamic>,
-            ),
+            (dynamic value) =>
+                PandaWiseNotification.fromJson(value as Map<String, dynamic>),
           )
           .toList(growable: false),
     );

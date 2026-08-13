@@ -22,17 +22,23 @@ class ProfileTab extends StatelessWidget {
           PandaWiseCard(
             child: Row(
               children: <Widget>[
-                const CircleAvatar(radius: 30, child: Icon(Icons.person_rounded)),
+                const CircleAvatar(
+                  radius: 30,
+                  child: Icon(Icons.person_rounded),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(parent?.name ?? '', style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        parent?.name ?? '',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                       Text(parent?.email ?? ''),
                       const SizedBox(height: 4),
                       Text(
-                        _planName(parent?.subscriptionPlanId),
+                        parent?.subscriptionPlanName ?? '',
                         style: const TextStyle(
                           color: PandaWiseColors.green,
                           fontWeight: FontWeight.w600,
@@ -49,7 +55,10 @@ class ProfileTab extends StatelessWidget {
             color: const Color(0xFFEFF6FF),
             child: Row(
               children: <Widget>[
-                const Icon(Icons.card_giftcard_rounded, color: PandaWiseColors.blue),
+                const Icon(
+                  Icons.card_giftcard_rounded,
+                  color: PandaWiseColors.blue,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -82,7 +91,7 @@ class ProfileTab extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.workspace_premium_outlined),
                   title: const Text('Subscription Plans'),
-                  subtitle: Text(_planName(parent?.subscriptionPlanId)),
+                  subtitle: Text(parent?.subscriptionPlanName ?? ''),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
@@ -97,7 +106,8 @@ class ProfileTab extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => ParentProfileEditScreen(api: api, session: session),
+                      builder: (_) =>
+                          ParentProfileEditScreen(api: api, session: session),
                     ),
                   ),
                 ),
@@ -108,7 +118,8 @@ class ProfileTab extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => NotificationCentreScreen(session: session),
+                      builder: (_) =>
+                          NotificationCentreScreen(session: session),
                     ),
                   ),
                 ),
@@ -119,7 +130,8 @@ class ProfileTab extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => SettingsScreen(api: api, session: session),
+                      builder: (_) =>
+                          SettingsScreen(api: api, session: session),
                     ),
                   ),
                 ),
@@ -146,7 +158,8 @@ class SubscriptionPlansScreen extends StatefulWidget {
   final SessionController session;
 
   @override
-  State<SubscriptionPlansScreen> createState() => _SubscriptionPlansScreenState();
+  State<SubscriptionPlansScreen> createState() =>
+      _SubscriptionPlansScreenState();
 }
 
 class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
@@ -157,7 +170,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(saved ? '${plan.planName} plan selected.' : widget.session.error ?? 'Please try again.'),
+        content: Text(
+          saved
+              ? '${plan.planName} plan selected.'
+              : widget.session.error ?? 'Please try again.',
+        ),
       ),
     );
     if (saved) setState(() => _catalogue = widget.session.getPlans());
@@ -169,7 +186,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
       appBar: AppBar(title: const Text('Subscription Plans')),
       body: FutureBuilder<PlanCatalogue?>(
         future: _catalogue,
-        builder: (BuildContext context, AsyncSnapshot<PlanCatalogue?> snapshot) {
+        builder:
+            (BuildContext context, AsyncSnapshot<PlanCatalogue?> snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -210,11 +228,13 @@ class NotificationCentreScreen extends StatefulWidget {
   final SessionController session;
 
   @override
-  State<NotificationCentreScreen> createState() => _NotificationCentreScreenState();
+  State<NotificationCentreScreen> createState() =>
+      _NotificationCentreScreenState();
 }
 
 class _NotificationCentreScreenState extends State<NotificationCentreScreen> {
-  late Future<NotificationCentre?> _notifications = widget.session.getNotifications();
+  late Future<NotificationCentre?> _notifications =
+      widget.session.getNotifications();
 
   Future<void> _refresh() async {
     setState(() => _notifications = widget.session.getNotifications());
@@ -231,7 +251,8 @@ class _NotificationCentreScreenState extends State<NotificationCentreScreen> {
             tooltip: 'Notification preferences',
             onPressed: () => Navigator.of(context).push<void>(
               MaterialPageRoute<void>(
-                builder: (_) => NotificationPreferencesScreen(session: widget.session),
+                builder: (_) =>
+                    NotificationPreferencesScreen(session: widget.session),
               ),
             ),
             icon: const Icon(Icons.tune_rounded),
@@ -240,21 +261,32 @@ class _NotificationCentreScreenState extends State<NotificationCentreScreen> {
       ),
       body: FutureBuilder<NotificationCentre?>(
         future: _notifications,
-        builder: (BuildContext context, AsyncSnapshot<NotificationCentre?> snapshot) {
+        builder: (
+          BuildContext context,
+          AsyncSnapshot<NotificationCentre?> snapshot,
+        ) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
           final NotificationCentre? centre = snapshot.data;
-          if (centre == null) return _SettingsError(message: widget.session.error);
+          if (centre == null)
+            return _SettingsError(message: widget.session.error);
           return RefreshIndicator(
             onRefresh: _refresh,
             child: centre.items.isEmpty
                 ? ListView(
                     padding: const EdgeInsets.all(40),
                     children: const <Widget>[
-                      Icon(Icons.notifications_none_rounded, size: 64, color: PandaWiseColors.blue),
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        size: 64,
+                        color: PandaWiseColors.blue,
+                      ),
                       SizedBox(height: 16),
-                      Text('You are all caught up.', textAlign: TextAlign.center),
+                      Text(
+                        'You are all caught up.',
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   )
                 : ListView.separated(
@@ -269,14 +301,21 @@ class _NotificationCentreScreenState extends State<NotificationCentreScreen> {
                           children: <Widget>[
                             CircleAvatar(
                               backgroundColor: const Color(0xFFEFF6FF),
-                              child: Icon(_notificationIcon(item.type), color: PandaWiseColors.blue),
+                              child: Icon(
+                                _notificationIcon(item.type),
+                                color: PandaWiseColors.blue,
+                              ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
-                                  Text(item.title, style: Theme.of(context).textTheme.titleMedium),
+                                  Text(
+                                    item.title,
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
                                   const SizedBox(height: 5),
                                   Text(item.message),
                                 ],
@@ -295,13 +334,18 @@ class _NotificationCentreScreenState extends State<NotificationCentreScreen> {
 }
 
 class ParentProfileEditScreen extends StatefulWidget {
-  const ParentProfileEditScreen({required this.api, required this.session, super.key});
+  const ParentProfileEditScreen({
+    required this.api,
+    required this.session,
+    super.key,
+  });
 
   final PandaWiseApi api;
   final SessionController session;
 
   @override
-  State<ParentProfileEditScreen> createState() => _ParentProfileEditScreenState();
+  State<ParentProfileEditScreen> createState() =>
+      _ParentProfileEditScreenState();
 }
 
 class _ParentProfileEditScreenState extends State<ParentProfileEditScreen> {
@@ -356,8 +400,23 @@ class _ParentProfileEditScreenState extends State<ParentProfileEditScreen> {
       body: FutureBuilder<BootstrapData>(
         future: _bootstrap,
         builder: (BuildContext context, AsyncSnapshot<BootstrapData> snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const _SettingsError(
+              message: 'PandaWise could not load profile options.',
+            );
+          }
           final BootstrapData bootstrap = snapshot.data!;
+          if (bootstrap.parentTypes.isEmpty ||
+              bootstrap.languages.isEmpty ||
+              bootstrap.timeCommitments.isEmpty) {
+            return const _SettingsError(
+              message:
+                  'Profile options are not configured in the master Sheet.',
+            );
+          }
           return Form(
             key: _formKey,
             child: ListView(
@@ -366,14 +425,15 @@ class _ParentProfileEditScreenState extends State<ParentProfileEditScreen> {
                 TextFormField(
                   controller: _name,
                   decoration: const InputDecoration(labelText: 'Parent name'),
-                  validator: (String? value) =>
-                      (value?.trim().length ?? 0) < 2 ? 'Enter your name' : null,
+                  validator: (String? value) => (value?.trim().length ?? 0) < 2
+                      ? 'Enter your name'
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   initialValue: _parentType,
                   decoration: const InputDecoration(labelText: 'Relationship'),
-                  items: const <String>['Mother', 'Father', 'Guardian', 'Grandparent']
+                  items: bootstrap.parentTypes
                       .map(
                         (String value) => DropdownMenuItem<String>(
                           value: value,
@@ -381,20 +441,24 @@ class _ParentProfileEditScreenState extends State<ParentProfileEditScreen> {
                         ),
                       )
                       .toList(growable: false),
-                  onChanged: (String? value) => setState(() => _parentType = value ?? _parentType),
+                  onChanged: (String? value) =>
+                      setState(() => _parentType = value ?? _parentType),
                 ),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _mobile,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(labelText: 'Mobile number'),
-                  validator: (String? value) =>
-                      (value?.trim().length ?? 0) < 8 ? 'Enter a valid mobile number' : null,
+                  validator: (String? value) => (value?.trim().length ?? 0) < 8
+                      ? 'Enter a valid mobile number'
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   initialValue: _languageId,
-                  decoration: const InputDecoration(labelText: 'Preferred language'),
+                  decoration: const InputDecoration(
+                    labelText: 'Preferred language',
+                  ),
                   items: bootstrap.languages
                       .map(
                         (MasterOption language) => DropdownMenuItem<String>(
@@ -403,12 +467,15 @@ class _ParentProfileEditScreenState extends State<ParentProfileEditScreen> {
                         ),
                       )
                       .toList(growable: false),
-                  onChanged: (String? value) => setState(() => _languageId = value ?? _languageId),
+                  onChanged: (String? value) =>
+                      setState(() => _languageId = value ?? _languageId),
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   initialValue: _timeCommitment,
-                  decoration: const InputDecoration(labelText: 'Family time commitment'),
+                  decoration: const InputDecoration(
+                    labelText: 'Family time commitment',
+                  ),
                   items: bootstrap.timeCommitments
                       .map(
                         (String value) => DropdownMenuItem<String>(
@@ -417,8 +484,9 @@ class _ParentProfileEditScreenState extends State<ParentProfileEditScreen> {
                         ),
                       )
                       .toList(growable: false),
-                  onChanged: (String? value) =>
-                      setState(() => _timeCommitment = value ?? _timeCommitment),
+                  onChanged: (String? value) => setState(
+                    () => _timeCommitment = value ?? _timeCommitment,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
@@ -440,10 +508,12 @@ class NotificationPreferencesScreen extends StatefulWidget {
   final SessionController session;
 
   @override
-  State<NotificationPreferencesScreen> createState() => _NotificationPreferencesScreenState();
+  State<NotificationPreferencesScreen> createState() =>
+      _NotificationPreferencesScreenState();
 }
 
-class _NotificationPreferencesScreenState extends State<NotificationPreferencesScreen> {
+class _NotificationPreferencesScreenState
+    extends State<NotificationPreferencesScreen> {
   late bool _push = widget.session.parent!.pushNotification;
   late bool _email = widget.session.parent!.emailNotification;
   late bool _weekly = widget.session.parent!.weeklySummary;
@@ -466,7 +536,8 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
 
   @override
   Widget build(BuildContext context) {
-    final bool weeklyAvailable = widget.session.parent?.subscriptionPlanId != 'PLN001';
+    final bool weeklyAvailable =
+        widget.session.parent?.weeklySummaryAvailable ?? false;
     return Scaffold(
       appBar: AppBar(title: const Text('Notification Preferences')),
       body: ListView(
@@ -494,14 +565,20 @@ class _NotificationPreferencesScreenState extends State<NotificationPreferencesS
             value: weeklyAvailable && _weekly,
             title: const Text('Weekly summary'),
             subtitle: Text(
-              weeklyAvailable ? 'A gentle weekly progress reflection' : 'Available on Growth and Mastery',
+              weeklyAvailable
+                  ? 'A gentle weekly progress reflection'
+                  : 'Available on Growth and Mastery',
             ),
-            onChanged: weeklyAvailable ? (bool value) => setState(() => _weekly = value) : null,
+            onChanged: weeklyAvailable
+                ? (bool value) => setState(() => _weekly = value)
+                : null,
           ),
           SwitchListTile(
             value: _missions,
             title: const Text('Mission reminder'),
-            subtitle: const Text('A reminder when the next mission is available'),
+            subtitle: const Text(
+              'A reminder when the next mission is available',
+            ),
             onChanged: (bool value) => setState(() => _missions = value),
           ),
           const SizedBox(height: 20),
@@ -553,11 +630,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   leading: const Icon(Icons.translate_rounded),
                   title: const Text('Language and family time'),
-                  subtitle: Text('${parent.preferredLanguageId} • ${_timeLabel(parent.dailyTimeCommitment)}'),
+                  subtitle: Text(
+                    '${parent.preferredLanguageId} • ${_timeLabel(parent.dailyTimeCommitment)}',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => ParentProfileEditScreen(api: widget.api, session: widget.session),
+                      builder: (_) => ParentProfileEditScreen(
+                        api: widget.api,
+                        session: widget.session,
+                      ),
                     ),
                   ),
                 ),
@@ -568,7 +650,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(context).push<void>(
                     MaterialPageRoute<void>(
-                      builder: (_) => NotificationPreferencesScreen(session: widget.session),
+                      builder: (_) => NotificationPreferencesScreen(
+                        session: widget.session,
+                      ),
                     ),
                   ),
                 ),
@@ -576,7 +660,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Privacy and consent', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Privacy and consent',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 10),
           PandaWiseCard(
             child: Column(
@@ -585,7 +672,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   contentPadding: EdgeInsets.zero,
                   value: _marketing,
                   title: const Text('Optional PandaWise updates'),
-                  subtitle: const Text('Separate from the Terms and Privacy Policy'),
+                  subtitle: const Text(
+                    'Separate from the Terms and Privacy Policy',
+                  ),
                   onChanged: widget.session.busy ? null : _changeMarketing,
                 ),
                 const Divider(),
@@ -642,14 +731,18 @@ class _ReferralScreenState extends State<ReferralScreen> {
         children: <Widget>[
           PandaWiseCard(
             color: const Color(0xFFEFF6FF),
-            child: Text('Share your code ${parent.referralCode} with another family.'),
+            child: Text(
+              'Share your code ${parent.referralCode} with another family.',
+            ),
           ),
           const SizedBox(height: 20),
           if (parent.referredBy == null) ...<Widget>[
             TextField(
               controller: _code,
               textCapitalization: TextCapitalization.characters,
-              decoration: const InputDecoration(labelText: 'Referral code received'),
+              decoration: const InputDecoration(
+                labelText: 'Referral code received',
+              ),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -690,7 +783,12 @@ class _PlanCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(child: Text(plan.planName, style: Theme.of(context).textTheme.titleLarge)),
+              Expanded(
+                child: Text(
+                  plan.planName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
               if (plan.recommended) const Chip(label: Text('Recommended')),
             ],
           ),
@@ -701,16 +799,24 @@ class _PlanCard extends StatelessWidget {
             plan.annualPriceInr == 0
                 ? 'Free'
                 : '₹${plan.monthlyPriceInr} / month  •  ₹${plan.annualPriceInr} / year',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: PandaWiseColors.blue),
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(color: PandaWiseColors.blue),
           ),
           const SizedBox(height: 14),
           _PlanFeature(text: _childAllowance(plan.maxChildren)),
           _PlanFeature(
-            text: '${plan.includedAssessmentsPerYear} Development Checks / year '
+            text:
+                '${plan.includedAssessmentsPerYear} Development Checks / year '
                 '(${plan.questionCount} questions)',
           ),
-          _PlanFeature(text: '${plan.journeyLengthDays}-day personalized journey'),
-          _PlanFeature(text: '${plan.missionsPerSkill} mission levels per skill'),
+          _PlanFeature(
+            text: '${plan.journeyLengthDays}-day personalized journey',
+          ),
+          _PlanFeature(
+            text: '${plan.missionsPerSkill} mission levels per skill',
+          ),
           _PlanFeature(text: '${plan.skillsVisible} visible skills'),
           _PlanFeature(text: '${plan.passionInsightsLevel} passion insights'),
           _PlanFeature(
@@ -718,10 +824,20 @@ class _PlanCard extends StatelessWidget {
                 '${plan.assessmentComparison}',
           ),
           _PlanFeature(
-            text: plan.growthTimelineEnabled ? 'Growth timeline' : 'Latest GrowScore snapshot',
+            text: plan.growthTimelineEnabled
+                ? 'Growth timeline'
+                : 'Latest GrowScore snapshot',
           ),
-          _PlanFeature(text: plan.weeklySummaryEnabled ? 'Weekly summaries' : 'No weekly summaries'),
-          _PlanFeature(text: plan.monthlyReportEnabled ? 'Monthly reports' : 'No monthly reports'),
+          _PlanFeature(
+            text: plan.weeklySummaryEnabled
+                ? 'Weekly summaries'
+                : 'No weekly summaries',
+          ),
+          _PlanFeature(
+            text: plan.monthlyReportEnabled
+                ? 'Monthly reports'
+                : 'No monthly reports',
+          ),
           _PlanFeature(text: '${plan.parentGuidanceLevel} parent guidance'),
           _PlanFeature(text: 'Languages: ${plan.multiLanguageLevel}'),
           const SizedBox(height: 16),
@@ -746,7 +862,11 @@ class _PlanFeature extends StatelessWidget {
       padding: const EdgeInsets.only(top: 7),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.check_circle_outline_rounded, size: 19, color: PandaWiseColors.green),
+          const Icon(
+            Icons.check_circle_outline_rounded,
+            size: 19,
+            color: PandaWiseColors.green,
+          ),
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
         ],
@@ -769,14 +889,6 @@ class _SettingsError extends StatelessWidget {
       ),
     );
   }
-}
-
-String _planName(String? planId) {
-  return switch (planId) {
-    'PLN002' => 'Growth Plan',
-    'PLN003' => 'Mastery Plan',
-    _ => 'Explorer Plan',
-  };
 }
 
 String _childAllowance(int? maxChildren) {
@@ -805,7 +917,6 @@ IconData _notificationIcon(String type) {
 }
 
 void _showSettingsError(BuildContext context, String? message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message ?? 'Please try again.')),
-  );
+  ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(message ?? 'Please try again.')));
 }

@@ -18,9 +18,9 @@ Use the approved labels `Passion Discovery`, `Development Check`, `GrowScore`, a
 ## Engineering rules
 
 - Keep `main` release-ready. Develop each sprint on `agent/sprint-*` branches.
-- Google Sheets is the V1 business-data source; access it only through the API.
+- Google Sheets is the V1 database; access it only through Google Apps Script.
 - Never embed Google credentials, JWT secrets, or spreadsheet data in the APK.
-- Keep sheet access behind repository interfaces so PostgreSQL can replace it later.
+- Keep all backend reads, writes and calculations inside `services/apps-script`.
 - Prefer configuration over hardcoding for skills, questions, missions, plans,
   limits, badges, notification rules, and scoring rules.
 - Store password hashes only; never log passwords, tokens, child PII, or credentials.
