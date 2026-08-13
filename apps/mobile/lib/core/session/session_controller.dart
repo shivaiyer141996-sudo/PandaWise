@@ -9,6 +9,7 @@ class SessionController extends ChangeNotifier {
     required PandaWiseApi api,
     required TokenStore tokenStore,
     OfflineMutationStore? offlineStore,
+    this.demoAvailable = false,
   })  : _api = api,
         _tokenStore = tokenStore,
         _offlineStore = offlineStore ?? OfflineMutationStore();
@@ -16,6 +17,7 @@ class SessionController extends ChangeNotifier {
   final PandaWiseApi _api;
   final TokenStore _tokenStore;
   final OfflineMutationStore _offlineStore;
+  final bool demoAvailable;
 
   ParentProfile? _parent;
   List<ChildProfile> _children = <ChildProfile>[];
@@ -23,6 +25,7 @@ class SessionController extends ChangeNotifier {
   bool _initializing = true;
   bool _busy = false;
   bool _syncing = false;
+  bool _demoMode = false;
   String? _error;
 
   ParentProfile? get parent => _parent;
@@ -30,6 +33,7 @@ class SessionController extends ChangeNotifier {
   bool get isAuthenticated => _token != null && _parent != null;
   bool get initializing => _initializing;
   bool get busy => _busy;
+  bool get isDemoMode => _demoMode;
   String? get error => _error;
 
   Future<void> restore() async {
@@ -40,6 +44,7 @@ class SessionController extends ChangeNotifier {
       try {
         _parent = await _api.getMe(storedToken);
         _children = await _api.getChildren(storedToken);
+        _demoMode = demoAvailable;
         await syncPendingChanges();
       } on PandaWiseApiException catch (exception) {
         if (exception.code == 'UNAUTHORIZED') {
@@ -82,7 +87,18 @@ class SessionController extends ChangeNotifier {
     );
   }
 
-  Future<bool> _authenticate(Future<AuthResult> Function() action) async {
+  Future<bool> enterDemoMode() async {
+    if (!demoAvailable || _api is! PandaWiseDemoApi) return false;
+    return _authenticate(
+      () => (_api as PandaWiseDemoApi).startDemo(),
+      demoMode: true,
+    );
+  }
+
+  Future<bool> _authenticate(
+    Future<AuthResult> Function() action, {
+    bool demoMode = false,
+  }) async {
     _setBusy(true);
     try {
       final AuthResult result = await action();
@@ -90,6 +106,7 @@ class SessionController extends ChangeNotifier {
       _parent = result.parent;
       _children = await _api.getChildren(result.token);
       await _tokenStore.write(result.token);
+      _demoMode = demoMode;
       await syncPendingChanges();
       _error = null;
       return true;
@@ -654,6 +671,7 @@ class SessionController extends ChangeNotifier {
     _token = null;
     _parent = null;
     _children = <ChildProfile>[];
+    _demoMode = false;
     _error = null;
     notifyListeners();
   }

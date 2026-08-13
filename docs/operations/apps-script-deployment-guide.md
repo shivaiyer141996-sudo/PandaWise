@@ -83,10 +83,12 @@ three Release 1 age groups, languages, skills, passions and avatar options.
 5. Verify the SHA-256 and `backend_configured=true` in the artifact manifest.
 
 Every CI run also produces an installable pre-deployment APK. Its manifest says
-`backend_configured=false`; it is suitable for installation/UI smoke testing but
-cannot perform server-backed registration or login until the one-time URL handoff.
-The optional workflow input and repository variable remain environment overrides,
-not requirements for normal builds.
+`backend_configured=false`; it opens the backend-free **Explore Demo Mode** path
+from Login, loads stateful in-memory data and supports complete mobile UI/UX
+validation. The persistent **Demo Mode - Offline** banner identifies that no Sheet
+is being changed. Server-backed registration and login remain unavailable until
+the one-time URL handoff. The optional workflow input and repository variable
+remain environment overrides, not requirements for normal builds.
 
 ## Updating the backend
 

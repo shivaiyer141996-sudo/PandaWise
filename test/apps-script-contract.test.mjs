@@ -61,3 +61,23 @@ test("assessment UI remains progress-only and supports Save & Exit", () => {
   assert.match(flow, /Save & Exit/);
   assert.doesNotMatch(flow, /question grid|attempted\/unattempted/i);
 });
+
+test("an unconfigured build exposes a backend-free Demo Mode only", () => {
+  const main = readFileSync("apps/mobile/lib/main.dart", "utf8");
+  const app = readFileSync("apps/mobile/lib/app.dart", "utf8");
+  const auth = readFileSync(
+    "apps/mobile/lib/features/auth/auth_flow.dart",
+    "utf8",
+  );
+  const demo = readFileSync(
+    "apps/mobile/lib/core/api/demo_pandawise_api.dart",
+    "utf8",
+  );
+
+  assert.match(main, /!PandaWiseConfig\.isConfigured/);
+  assert.match(main, /DemoPandaWiseApi/);
+  assert.match(auth, /Explore Demo Mode/);
+  assert.match(app, /Demo Mode - Offline/);
+  assert.match(demo, /implements PandaWiseApi, PandaWiseDemoApi/);
+  assert.doesNotMatch(demo, /HttpPandaWiseApi|script\.google\.com/);
+});

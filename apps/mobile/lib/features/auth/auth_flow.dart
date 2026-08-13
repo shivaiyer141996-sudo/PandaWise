@@ -109,6 +109,13 @@ class _LoginFormState extends State<_LoginForm> {
     if (!success && mounted) _showError(context, widget.session.error);
   }
 
+  Future<void> _startDemo() async {
+    final bool success = await widget.session.enterDemoMode();
+    if (!success && mounted) {
+      _showError(context, widget.session.error ?? 'Demo Mode is unavailable.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -170,6 +177,31 @@ class _LoginFormState extends State<_LoginForm> {
             onPressed: widget.onSignup,
             child: const Text('Create a PandaWise account'),
           ),
+          if (widget.session.demoAvailable) ...<Widget>[
+            const SizedBox(height: 8),
+            const Row(
+              children: <Widget>[
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('or'),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: widget.session.busy ? null : _startDemo,
+              icon: const Icon(Icons.explore_outlined),
+              label: const Text('Explore Demo Mode'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No account or internet required',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );

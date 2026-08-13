@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pandawise_mobile/app.dart';
+import 'package:pandawise_mobile/core/api/demo_pandawise_api.dart';
 import 'package:pandawise_mobile/core/api/pandawise_api.dart';
 import 'package:pandawise_mobile/core/models/models.dart';
 import 'package:pandawise_mobile/core/offline/offline_mutation_store.dart';
@@ -47,6 +48,39 @@ void main() {
 
     expect(find.text('Hi Shiva 👋'), findsWidgets);
     expect(find.text('Tell us about your child'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Children'), findsOneWidget);
+    expect(find.text('Journey'), findsOneWidget);
+    expect(find.text('Progress'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+  });
+
+  testWidgets('enters backend-free Demo Mode from login', (
+    WidgetTester tester,
+  ) async {
+    final DemoPandaWiseApi api = DemoPandaWiseApi();
+    final SessionController session = SessionController(
+      api: api,
+      tokenStore: MemoryTokenStore(),
+      offlineStore: OfflineMutationStore(storage: MemoryOfflineKeyValueStore()),
+      demoAvailable: true,
+    );
+
+    await tester.pumpWidget(PandaWiseApp(api: api, session: session));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Explore Demo Mode'), findsOneWidget);
+    expect(find.text('No account or internet required'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Explore Demo Mode'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explore Demo Mode'));
+    await tester.pumpAndSettle();
+
+    expect(session.isDemoMode, isTrue);
+    expect(find.text('Demo Mode - Offline'), findsOneWidget);
+    expect(find.text('Hi Priya 👋'), findsWidgets);
+    expect(find.text('Aarav'), findsWidgets);
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Children'), findsOneWidget);
     expect(find.text('Journey'), findsOneWidget);

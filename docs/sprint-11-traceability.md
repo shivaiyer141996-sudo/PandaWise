@@ -21,6 +21,7 @@ functional APK and device UAT remain environment gates.
 | ₹0 infrastructure | Flutter + Apps Script + Sheets only; no server/cloud database/container | repository structure and test |
 | Documentation and ZIP | README, API contract, deployment guide and CI source ZIP | repository and CI workflow |
 | CI and APK | Apps Script, Node tooling, Flutter, security and URL-bound APK jobs | `.github/workflows/ci.yml` |
+| Backend-free UI validation | Config-gated Demo button, global offline banner and stateful in-memory `PandaWiseApi` implementation | Flutter unit/widget tests and CI APK |
 
 ## Acceptance gate state
 
@@ -28,5 +29,6 @@ functional APK and device UAT remain environment gates.
 - Apps Script static/contract tests: passing locally.
 - Live Web App URL: pending deployment by the connected Google account.
 - Functional registration/login and immediate Sheet writes: pending deployed smoke test.
-- Functional APK, checksum and ZIP: produced by CI only after the real URL is supplied.
+- Offline Demo APK, checksum and ZIP: produced by CI while the URL is blank.
+- Server-backed functional APK: produced by CI after the real URL is supplied.
 - Android installation and full UAT: pending device testing.

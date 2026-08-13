@@ -103,6 +103,10 @@ abstract interface class PandaWiseApi {
   Future<NotificationCentre> getNotifications(String token);
 }
 
+abstract interface class PandaWiseDemoApi {
+  Future<AuthResult> startDemo();
+}
+
 class HttpPandaWiseApi implements PandaWiseApi {
   HttpPandaWiseApi({
     http.Client? client,

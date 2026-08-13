@@ -45,6 +45,20 @@ flutter pub get
 flutter run --dart-define=PANDAWISE_APPS_SCRIPT_URL="https://script.google.com/macros/s/<deployment-id>/exec"
 ```
 
+### Demo Mode before deployment
+
+When `PANDAWISE_APPS_SCRIPT_URL` is empty, `PandaWiseConfig.isConfigured` is
+`false` and the login screen exposes **Explore Demo Mode**. Demo Mode bypasses
+authentication, uses stateful in-memory family and master data, supports the
+existing child, assessment, report, journey, progress, profile, settings,
+notification, subscription and referral flows, and displays **Demo Mode -
+Offline** above every route. It performs no network requests and stores no demo
+session after the app process ends.
+
+Supplying the deployed Apps Script `/exec` URL makes `isConfigured` true. The
+Demo Mode entry and banner then disappear automatically and the unchanged UI
+uses `HttpPandaWiseApi`.
+
 ## Quality gates
 
 ```bash
@@ -58,9 +72,11 @@ cd apps/mobile && flutter pub get && flutter analyze && flutter test
 
 GitHub Actions builds and uploads a debug APK on every pull request and milestone
 branch push. Before the one-time Apps Script deployment, the artifact manifest says
-`backend_configured=false`; after the real URL is stored in `config.dart`, the next
-push produces the functional APK automatically. No dummy backend URL, Cloud Browser
-session or manual APK build is used.
+`backend_configured=false` and the APK is fully usable for offline Demo Mode UI/UX
+validation. Server-backed registration and login remain disabled. After the real
+URL is stored in `config.dart`, the next push produces the backend-connected APK
+automatically. No dummy backend URL, Cloud Browser session or manual APK build is
+used.
 
 No Apps Script secret, Google credential, password, session token or family PII
 belongs in this repository or in an APK.
