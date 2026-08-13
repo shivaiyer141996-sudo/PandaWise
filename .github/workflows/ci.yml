@@ -1,6 +1,12 @@
 name: CI
 
 on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Non-secret pilot API base URL embedded in the debug APK
+        required: true
+        type: string
   pull_request:
   push:
     branches:
@@ -9,6 +15,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   api:
@@ -55,6 +65,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm audit --audit-level=high
+      - run: npm run security:scan
       - name: Secret scan
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
         env:
@@ -62,10 +73,10 @@ jobs:
           GITLEAKS_ENABLE_COMMENTS: false
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
 
-  android-release-candidate:
-    name: Android release candidate
+  android-pilot:
+    name: Android pilot artifact
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: apps/mobile
@@ -75,15 +86,45 @@ jobs:
         with:
           flutter-version: 3.47.0
           cache: true
+      - name: Generate Android runner when absent
+        run: |
+          if [ ! -d android ]; then
+            pandawise_runner_dir="$(mktemp -d)"
+            flutter create --platforms=android --org com.pandawise --project-name pandawise_mobile "$pandawise_runner_dir"
+            cp -R "$pandawise_runner_dir/android" .
+          fi
       - run: flutter pub get
-      - name: Generate Android host project
-        run: flutter create --platforms=android --org com.pandawise --project-name pandawise_mobile .
-      - name: Build installable test APK
-        run: flutter build apk --debug --dart-define=PANDAWISE_API_BASE_URL=https://api.invalid.pandawise.example
-      - name: Upload release-candidate APK
+      - name: Build debug-signed pilot APK
+        env:
+          PANDAWISE_PILOT_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://api.invalid.pandawise.example' }}
+        run: flutter build apk --debug --dart-define=PANDAWISE_API_BASE_URL="$PANDAWISE_PILOT_API_BASE_URL"
+      - name: Record APK checksum
+        run: sha256sum build/app/outputs/flutter-apk/app-debug.apk > build/app/outputs/flutter-apk/app-debug.apk.sha256
+      - name: Create pilot artifact manifest
+        env:
+          PANDAWISE_PILOT_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://api.invalid.pandawise.example' }}
+        run: |
+          pandawise_artifact_dir="build/app/outputs/flutter-apk"
+          pandawise_apk_checksum="$(cut -d ' ' -f1 "$pandawise_artifact_dir/app-debug.apk.sha256")"
+          flutter --version > "$pandawise_artifact_dir/flutter-version.txt"
+          {
+            echo "product=PandaWise"
+            echo "release=1.0.0-rc.1"
+            echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF_NAME"
+            echo "workflow_run=$GITHUB_RUN_ID"
+            echo "api_base_url=$PANDAWISE_PILOT_API_BASE_URL"
+            echo "apk_sha256=$pandawise_apk_checksum"
+            echo "built_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          } > "$pandawise_artifact_dir/pilot-manifest.txt"
+      - name: Upload pilot APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pandawise-1.0.0-rc1-android-test
-          path: apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
+          name: pandawise-1.0.0-pilot-android
+          path: |
+            apps/mobile/build/app/outputs/flutter-apk/app-debug.apk
+            apps/mobile/build/app/outputs/flutter-apk/app-debug.apk.sha256
+            apps/mobile/build/app/outputs/flutter-apk/flutter-version.txt
+            apps/mobile/build/app/outputs/flutter-apk/pilot-manifest.txt
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
