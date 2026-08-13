@@ -1,42 +1,54 @@
-# PandaWise Release 1.0 Checklist
+# PandaWise Release 1.0 Pilot Checklist
 
 ## Automated gates
 
-- [x] TypeScript strict typecheck and API build.
-- [x] API unit/integration suite, including a full signup-to-reassessment parent path.
-- [x] Flutter analysis, widget regression and accessibility/resilience tests.
-- [x] Dependency audit fails on high or critical findings.
-- [x] Full-history secret scan.
-- [x] Android debug-signed release-candidate APK build and artifact upload.
-- [x] OpenAPI and sprint traceability updated.
+- [x] Release candidate API typecheck, build and parent-journey regression pass.
+- [x] Release candidate Flutter analysis, widget, accessibility and resilience tests pass.
+- [x] Dependency audit and full-history Gitleaks gates exist.
+- [ ] Sprint 10 `npm run pilot:readiness` passes for the exact PR commit.
+- [ ] Sprint 10 API, Flutter and security jobs pass in GitHub Actions.
+- [ ] Pilot APK, SHA-256, Flutter version and manifest are retained together.
+
+## Google Sheets readiness
+
+- [x] Header-driven mapping, controlled schema errors and transient retry/backoff exist.
+- [x] A dated native rehearsal copy preserves all 23 source tabs.
+- [x] Bounded header/master reads passed on the rehearsal copy.
+- [x] Ten active skill weights total 100; plan assessment limits are 2/6/12 and
+  every active plan has a 21-day journey.
+- [ ] Sequential/concurrent API reads and one disposable fictional journey pass.
+- [ ] A restricted `.xlsx` backup destination is approved and recorded.
+- [ ] Monitoring owners and alert thresholds are assigned.
+
+Rehearsal workbook:
+[PandaWise Masters - Sprint 10 Pilot Rehearsal - 2026-08-13](https://docs.google.com/spreadsheets/d/1x5y3dREaGkdXPEKHU41dz0nThKMHLMeqW9IGdj7l2p4/edit)
+
+The live PandaWise Masters workbook was not written during the structural rehearsal.
 
 ## Environment and data
 
-- [ ] Set a production `JWT_SECRET` of at least 32 random characters in the secret store.
-- [ ] Set restrictive HTTPS `ALLOWED_ORIGINS`.
-- [ ] Share PandaWise Masters only with the production service-account identity.
-- [ ] Set the real HTTPS `PANDAWISE_API_BASE_URL` at production build time.
-- [ ] Create and record a dated pre-launch workbook backup.
-- [ ] Complete the synthetic-copy quota rehearsal in the Google Sheets runbook.
-- [ ] Verify `/health` and three consecutive `/ready` responses after deployment.
+- [ ] Store a production/pilot JWT secret of at least 32 random characters.
+- [ ] Restrict HTTPS origins and workbook access to named pilot operators.
+- [ ] Point the pilot API only to the copied workbook.
+- [ ] Verify `/health` and three consecutive `/ready` responses.
+- [ ] Confirm logs omit passwords, tokens, credentials and family PII.
 
-## Android signing and distribution
+## Android pilot artifact
 
-- [ ] Enrol the application in Play App Signing and document the owner/recovery path.
-- [ ] Store upload keystore, alias and passwords in the protected release environment.
-- [ ] Generate the Android host with package ID `com.pandawise.pandawise_mobile`.
-- [ ] Build a release AAB with the production API URL; never commit signing material.
-- [ ] Verify the AAB signature, version `1.0.0+6`, permissions and absence of secrets.
-- [ ] Install through an internal Play track and complete device smoke tests.
+- [ ] GitHub Actions builds `pandawise-1.0.0-pilot-android`.
+- [ ] APK checksum matches `pilot-manifest.txt`.
+- [ ] Manifest commit, workflow run and non-secret API URL match the test environment.
+- [ ] APK installs on representative Android devices.
+- [ ] Critical smoke flow passes: login, child, assessment, GrowScore, journey,
+  Mission feedback, progress and settings.
 
-The CI APK is intentionally debug-signed. A production-signed build cannot be produced
-until the organization supplies its protected keystore and approves the final API URL.
+The CI APK is debug-signed for controlled testing only. Public distribution requires
+protected release signing, Play review and an approved production API environment.
 
-## Human acceptance
+## Human acceptance and decision
 
-- [ ] Test 3–4, 5–6, 7–9 and 10–12 age paths on representative Android devices.
-- [ ] Test TalkBack, 200% text, screen rotation and minimum target sizes.
-- [ ] Test offline launch, slow network, interrupted writes and safe retry copy.
-- [ ] Verify positive/non-judgmental copy across GrowScore, Missions and reassessment.
-- [ ] Obtain CPO scope sign-off and privacy/legal approval.
-- [ ] Record owners for support, incident response, workbook recovery and rollback.
+- [ ] All 37 UAT cases have results and evidence.
+- [ ] No critical or high-severity defect remains open.
+- [ ] CPO/Product Owner approves Release 1.0 scope and pilot evidence.
+- [ ] Release owner records commit, workflow run, checksum and rollback owner.
+- [ ] Go/no-go decision is dated and signed.

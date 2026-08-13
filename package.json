@@ -11,6 +11,8 @@
     "audit": "npm audit --audit-level=high",
     "check": "npm run typecheck --workspace @pandawise/api && npm run test --workspace @pandawise/api && npm run build --workspace @pandawise/api",
     "dev:api": "npm run dev --workspace @pandawise/api",
+    "pilot:readiness": "node scripts/pilot-readiness.mjs",
+    "security:scan": "node scripts/security-scan.mjs",
     "test": "npm run test --workspace @pandawise/api",
     "typecheck": "npm run typecheck --workspace @pandawise/api"
   },
