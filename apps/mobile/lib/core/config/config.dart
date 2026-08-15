@@ -6,7 +6,7 @@ class PandaWiseConfig {
   /// --dart-define=PANDAWISE_APPS_SCRIPT_URL=https://script.google.com/macros/s/.../exec
   static const String apiBaseUrl = String.fromEnvironment(
     'PANDAWISE_APPS_SCRIPT_URL',
-    defaultValue: '',
+    defaultValue: 'https://script.google.com/macros/s/AKfycbzCz-UTefS3IKsDtOEPAJl7MgrN6LLv4rmx-gX-qwkTu9KQB8reBCJi4UKkuuiqoCeP/exec',
   );
 
   static bool get isConfigured => apiBaseUrl.trim().isNotEmpty;

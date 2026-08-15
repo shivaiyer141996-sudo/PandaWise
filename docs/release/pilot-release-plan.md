@@ -9,9 +9,9 @@ approved.
 | Stage | Evidence | Status |
 |---|---|---|
 | Source and masters | Sprint 11 branch, Sheet configuration, local checks | Implemented |
-| Web App deployment | Script Properties, `/exec` URL, health/readiness | Pending |
+| Web App deployment | Script Properties, `/exec` URL, health/readiness | Verified |
 | Functional CI artifact | Green run, source ZIP, APK, SHA-256, manifest | Pending |
-| End-to-end Sheet flow | Fictional register through dashboard with row evidence | Pending |
+| End-to-end Sheet flow | Fictional register, login and child row evidence | In progress |
 | Device UAT | Completed checklist and defect log | Pending |
 | Go/no-go | CPO and release-owner decision | Pending |
 
@@ -47,7 +47,7 @@ the APK checksum differs, or any critical/high defect remains unresolved.
 |---|---|
 | Sprint 11 commit SHA | Pending |
 | Pull request | Pending |
-| Apps Script deployment ID | Pending |
+| Apps Script deployment ID | `AKfycbzCz-UTefS3IKsDtOEPAJl7MgrN6LLv4rmx-gX-qwkTu9KQB8reBCJi4UKkuuiqoCeP` |
 | GitHub workflow run | Pending |
 | APK SHA-256 | Pending |
 | UAT result | Pending |

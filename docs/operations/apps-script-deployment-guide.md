@@ -1,6 +1,16 @@
 # Google Apps Script deployment guide
 
-This is the one-time manual procedure for creating the free PandaWise backend.
+## Current Sprint 11 deployment
+
+- Status: deployed and verified on 15 August 2026.
+- Script project ID: `1oSCA7ZAtY3wbGi1JB8kl2jX8-S3txC_4hpvH6RfU9aYFw2MYUInvE9Zo`.
+- Deployment ID: `AKfycbzCz-UTefS3IKsDtOEPAJl7MgrN6LLv4rmx-gX-qwkTu9KQB8reBCJi4UKkuuiqoCeP`.
+- Web App URL: `https://script.google.com/macros/s/AKfycbzCz-UTefS3IKsDtOEPAJl7MgrN6LLv4rmx-gX-qwkTu9KQB8reBCJi4UKkuuiqoCeP/exec`.
+- Execute as: owner; access: Anyone.
+
+The generated authentication secret remains only in Script Properties.
+
+This is the repeatable procedure for creating the free PandaWise backend.
 The complete Apps Script source remains versioned in GitHub; deployment is not
 performed by GitHub Actions, a Cloud Browser or any other automated session.
 
