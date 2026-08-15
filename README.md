@@ -34,10 +34,11 @@ The APK has one environment-specific setting in
 `apps/mobile/lib/core/config/config.dart`:
 
 ```text
-PANDAWISE_APPS_SCRIPT_URL=https://script.google.com/macros/s/<deployment-id>/exec
+PANDAWISE_APPS_SCRIPT_URL=https://script.google.com/macros/s/AKfycbzCz-UTefS3IKsDtOEPAJl7MgrN6LLv4rmx-gX-qwkTu9KQB8reBCJi4UKkuuiqoCeP/exec
 ```
 
-No fallback or placeholder endpoint exists. Follow the deployment guide, then:
+The verified Sprint 11 URL is the default in `config.dart`; an environment
+override remains available for future deployments:
 
 ```bash
 cd apps/mobile
@@ -45,9 +46,10 @@ flutter pub get
 flutter run --dart-define=PANDAWISE_APPS_SCRIPT_URL="https://script.google.com/macros/s/<deployment-id>/exec"
 ```
 
-### Demo Mode before deployment
+### Demo Mode fallback
 
-When `PANDAWISE_APPS_SCRIPT_URL` is empty, `PandaWiseConfig.isConfigured` is
+When a development build explicitly uses an empty `PANDAWISE_APPS_SCRIPT_URL`,
+`PandaWiseConfig.isConfigured` is
 `false` and the login screen exposes **Explore Demo Mode**. Demo Mode bypasses
 authentication, uses stateful in-memory family and master data, supports the
 existing child, assessment, report, journey, progress, profile, settings,
@@ -71,12 +73,10 @@ cd apps/mobile && flutter pub get && flutter analyze && flutter test
 ```
 
 GitHub Actions builds and uploads a debug APK on every pull request and milestone
-branch push. Before the one-time Apps Script deployment, the artifact manifest says
-`backend_configured=false` and the APK is fully usable for offline Demo Mode UI/UX
-validation. Server-backed registration and login remain disabled. After the real
-URL is stored in `config.dart`, the next push produces the backend-connected APK
-automatically. No dummy backend URL, Cloud Browser session or manual APK build is
-used.
+branch push. The current default produces a backend-connected APK with
+`backend_configured=true`. An intentionally empty environment build remains fully
+usable for offline Demo Mode UI/UX validation. No dummy backend URL or manual APK
+build is used.
 
 No Apps Script secret, Google credential, password, session token or family PII
 belongs in this repository or in an APK.

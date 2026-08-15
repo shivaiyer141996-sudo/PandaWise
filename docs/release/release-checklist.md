@@ -11,18 +11,18 @@
 ## Google Apps Script and Sheets
 
 - [x] Live master/config rows required by Sprint 11 are present and validated.
-- [ ] `PANDAWISE_SPREADSHEET_ID` and a new `PANDAWISE_AUTH_SECRET` are Script Properties.
-- [ ] `verifyPandaWiseDeployment` returns healthy readiness and non-zero master counts.
-- [ ] Web App executes as the authorized owner and access is set to Anyone.
-- [ ] Health, readiness and bootstrap browser checks return JSON `ok:true`.
+- [x] `PANDAWISE_SPREADSHEET_ID` and a new `PANDAWISE_AUTH_SECRET` are Script Properties.
+- [x] `verifyPandaWiseDeployment` returns healthy readiness and non-zero master counts.
+- [x] Web App executes as the authorized owner and access is set to Anyone.
+- [x] Health, readiness and bootstrap checks return JSON `ok:true`.
 - [ ] Register/login/child/assessment/journey/report writes appear immediately.
 - [ ] Three consecutive readiness checks and one synthetic full journey pass.
 - [ ] A dated native backup and rollback owner are recorded.
 
 ## Functional acceptance
 
-- [ ] Register and login work with a newly created fictional account.
-- [ ] Child creation uses Chennai School Master dropdown values only.
+- [x] Register and login work with a newly created fictional account.
+- [x] Child creation uses Chennai School Master dropdown values only.
 - [ ] Assessment autosaves, Save & Exit works, and resume restores progress.
 - [ ] Offline answer, mission and profile edits sync after reconnection.
 - [ ] Explorer/Growth/Mastery visibility matches Subscription Master.

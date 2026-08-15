@@ -1,7 +1,7 @@
 # Sprint 11 traceability — Apps Script and Google Sheets migration
 
-Status: implemented in source on `agent/sprint-11-google-apps-script`; deployment,
-functional APK and device UAT remain environment gates.
+Status: source, Sheet contract and live Web App are verified on
+`agent/sprint-11-live-backend`; functional APK and device UAT remain release gates.
 
 | PRD/FSD requirement | Implementation | Evidence |
 |---|---|---|
@@ -25,10 +25,11 @@ functional APK and device UAT remain environment gates.
 
 ## Acceptance gate state
 
-- Source and Sheet configuration: implemented.
+- Source and Sheet configuration: implemented across all 23 required tabs.
 - Apps Script static/contract tests: passing locally.
-- Live Web App URL: pending deployment by the connected Google account.
-- Functional registration/login and immediate Sheet writes: pending deployed smoke test.
-- Offline Demo APK, checksum and ZIP: produced by CI while the URL is blank.
-- Server-backed functional APK: produced by CI after the real URL is supplied.
+- Live Web App URL: deployed and returning JSON for health, readiness and bootstrap.
+- Functional registration/login/child creation and immediate Sheet writes: verified
+  with fictional Sprint 11 test data; passwords are stored only as salted SHA-256 hashes.
+- Offline Demo APK, checksum and ZIP: retained from the pre-deployment CI run.
+- Server-backed functional APK: pending the current branch CI artifact.
 - Android installation and full UAT: pending device testing.
