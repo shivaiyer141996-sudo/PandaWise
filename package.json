@@ -1,12 +1,13 @@
 {
   "name": "pandawise",
-  "version": "1.0.0-sprint.11",
+  "version": "1.0.1-sprint.11",
   "private": true,
   "description": "PandaWise Flutter app with a Google Apps Script and Google Sheets backend",
   "scripts": {
     "apps-script:check": "node scripts/apps-script-check.mjs",
     "audit": "npm audit --audit-level=high",
     "check": "npm run apps-script:check && npm test",
+    "sit:live": "node scripts/live-sit.mjs",
     "pilot:readiness": "node scripts/pilot-readiness.mjs",
     "security:scan": "node scripts/security-scan.mjs",
     "test": "node --test test/*.test.mjs"

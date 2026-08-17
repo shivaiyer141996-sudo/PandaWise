@@ -16,7 +16,10 @@ Status: `Open`, `Triaged`, `In progress`, `Ready to retest`, `Closed`,
 
 | ID | UAT case | Summary | Severity | Environment/build | Reproduction | Expected/actual | Evidence | Owner | Status | Retest |
 |---|---|---|---|---|---|---|---|---|---|---|
-| PW-001 |  |  |  |  |  |  |  |  | Open |  |
+| PW-001 | UAT-010 | Passion Discovery could not continue | Critical | Sprint 11 live backend / run 42 APK | Select valid passions and continue | Valid selection saves / generic request failure | Apps Script wrote `Selected` into strict `PRIMARY\|SECONDARY\|EMERGING` column | Engineering | Ready to retest | Pending deployed SIT |
+| PW-002 | UAT-011 | Assessment start used invalid Sheet enums | Critical | Sprint 11 live backend | Complete Passion Discovery and start check | Check starts / strict assessment status or respondent validation rejects write | Contract audit against `12_Child_Assessments` | Engineering | Ready to retest | Pending deployed SIT |
+| PW-003 | UAT-016 | Journey generation used invalid Sheet enums | Critical | Sprint 11 live backend | Complete check and generate journey | 21-day journey appears / strict journey status or priority source rejects write | Contract audit against scheduler and journey validations | Engineering | Ready to retest | Pending deployed SIT |
+| PW-004 | UAT-036 | Strict validation could leave partial transaction rows | Critical | Sprint 11 live backend | Repeat a write with incompatible generated enum | No row written / partial row cells could remain | Incomplete Child Passion rows after failed requests | Engineering | Ready to retest | Pre-write guard covered by regression test |
 
 ## Triage rules
 

@@ -48,12 +48,19 @@ function pwRecommendationRules_(ageGroupId) {
 
 function pwJourneyFromRow_(row) {
   if (!row) return null;
+  var rawStatus = pwText_(row, 'Journey_Status');
+  var statusKey = rawStatus.toUpperCase().replace(/\s+/g, '_');
+  var statusLabels = {
+    PLANNED: 'Planned', ACTIVE: 'Active', PAUSED: 'Paused',
+    COMPLETED: 'Completed', ABANDONED: 'Abandoned'
+  };
   return {
     id: pwText_(row, 'Journey_ID'), childId: pwText_(row, 'Child_ID'),
     sourceAssessmentId: pwText_(row, 'Source_Assessment_ID'), planId: pwText_(row, 'Plan_ID'),
     startDate: pwText_(row, 'Start_Date'), plannedEndDate: pwText_(row, 'Planned_End_Date'),
     actualEndDate: pwText_(row, 'Actual_End_Date') || null,
-    status: pwText_(row, 'Journey_Status'), currentDay: pwNumber_(pwCell_(row, 'Current_Day'), 1),
+    status: statusLabels[statusKey] || rawStatus,
+    currentDay: pwNumber_(pwCell_(row, 'Current_Day'), 1),
     missionsPlanned: pwNumber_(pwCell_(row, 'Missions_Planned')),
     missionsCompleted: pwNumber_(pwCell_(row, 'Missions_Completed')),
     completionPercent: pwNumber_(pwCell_(row, 'Completion_Percent')),
@@ -184,11 +191,14 @@ function pwChooseMission_(input) {
     return right.score - left.score || left.mission.displayOrder - right.mission.displayOrder;
   });
   var selected = scored[0];
-  var reasons = [input.focusSkillIds.indexOf(input.skillId) >= 0 ? 'PARENT_FOCUS' : 'GROWSCORE_PRIORITY',
-    'SCORE_' + (input.score ? input.score.scoreBand : 'UNKNOWN'),
+  var isParentFocus = input.focusSkillIds.indexOf(input.skillId) >= 0;
+  var prioritySource = isParentFocus ? 'PARENT_FOCUS'
+    : selected.passionFit ? 'PASSION' : 'ASSESSMENT';
+  var reasons = [prioritySource, 'SCORE_' + (input.score ? input.score.scoreBand : 'UNKNOWN'),
     selected.passionFit ? 'PASSION_FIT' : 'AGE_FIT', 'TIME_' + maxMinutes + '_MIN',
     'DIFFICULTY_' + selected.mission.difficulty];
-  return { mission: selected.mission, prioritySource: reasons.join('|') };
+  return { mission: selected.mission, prioritySource: prioritySource,
+    reasonNotes: reasons.join('|') };
 }
 
 function pwCreateJourney_(parent, childId, body) {
@@ -274,13 +284,13 @@ function pwCreateJourney_(parent, childId, body) {
       missionId: choice.mission.id, day: day, week: week, scheduledDate: scheduledDate,
       status: day === 1 ? 'AVAILABLE' : 'PLANNED', unlocked: day === 1,
       prioritySource: choice.prioritySource, skillId: skillId, generatedAt: timestamp,
-      createdBy: parent.id, updatedAt: timestamp });
+      createdBy: parent.id, updatedAt: timestamp, notes: choice.reasonNotes });
   }
   return pwWithWriteLock_(function () {
     pwAppend_(PW_TABS.journeys, {
       Journey_ID: journeyId, Child_ID: child.id, Source_Assessment_ID: assessment.id,
       Plan_ID: plan.planId, Start_Date: startDate, Planned_End_Date: pwAddDays_(startDate, days - 1),
-      Actual_End_Date: '', Journey_Status: 'Active', Current_Day: 1,
+      Actual_End_Date: '', Journey_Status: 'ACTIVE', Current_Day: 1,
       Missions_Planned: days, Missions_Completed: 0, Completion_Percent: 0,
       Reassessment_Unlocked_Flag: false, Created_At: timestamp, Updated_At: timestamp,
       Journey_Version: '1.0'
@@ -292,7 +302,7 @@ function pwCreateJourney_(parent, childId, body) {
         Scheduled_Date: schedule.scheduledDate, Schedule_Status: schedule.status,
         Unlocked_Flag: schedule.unlocked, Priority_Source: schedule.prioritySource,
         Skill_ID: schedule.skillId, Completion_ID: '', Generated_At: timestamp,
-        Created_By: parent.id, Updated_At: timestamp, Notes: ''
+        Created_By: parent.id, Updated_At: timestamp, Notes: schedule.notes
       };
     }));
     pwUpdateRow_(PW_TABS.assessments, 'Assessment_ID', assessment.id, {
@@ -329,6 +339,9 @@ function pwPublicMission_(mission) {
 
 function pwReasonView_(source) {
   var labels = { PARENT_FOCUS: 'Chosen parent focus area',
+    ASSESSMENT: 'Suggested from the GrowScore profile',
+    PASSION: 'Connected to a selected passion',
+    BALANCE: 'Balanced across the growth journey',
     GROWSCORE_PRIORITY: 'Selected from the GrowScore profile',
     PASSION_FIT: 'Connected to a selected passion', AGE_FIT: "Matched to the child's age group" };
   return String(source || '').split('|').map(function (value) {
@@ -445,7 +458,7 @@ function pwCompleteMission_(parent, journeyId, scheduleId, body) {
     });
     pwUpdateRow_(PW_TABS.journeys, 'Journey_ID', journeyId, {
       Actual_End_Date: complete ? timestamp.slice(0, 10) : '',
-      Journey_Status: complete ? 'Completed' : 'Active',
+      Journey_Status: complete ? 'COMPLETED' : 'ACTIVE',
       Current_Day: Math.min(schedule.day + 1, owned.journey.missionsPlanned),
       Missions_Completed: completedCount, Completion_Percent: completionPercent,
       Reassessment_Unlocked_Flag: unlocked, Updated_At: timestamp

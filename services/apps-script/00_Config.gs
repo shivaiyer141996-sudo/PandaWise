@@ -7,7 +7,7 @@
  *   PANDAWISE_TOKEN_TTL_SECONDS (optional, defaults to 21600 / 6 hours)
  */
 
-var PW_VERSION = '1.0.0-sprint.11';
+var PW_VERSION = '1.0.1-sprint.11';
 var PW_CALCULATION_VERSION = '1.0';
 var PW_SCRIPT_PROPERTIES = {
   spreadsheetId: 'PANDAWISE_SPREADSHEET_ID',

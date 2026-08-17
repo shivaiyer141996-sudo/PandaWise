@@ -82,8 +82,47 @@ function pwToSheetValue_(value) {
   return value;
 }
 
+function pwValidationAllowedValuesFromRule_(validation) {
+  if (!validation) return null;
+  var criteria = validation.getCriteriaType();
+  var values = validation.getCriteriaValues();
+  if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+    return (values[0] || []).map(String).filter(Boolean);
+  }
+  if (criteria === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) {
+    return values[0].getDisplayValues().reduce(function (result, row) {
+      return result.concat(row.map(String).filter(Boolean));
+    }, []);
+  }
+  return null;
+}
+
+/**
+ * Google Sheets may leave a partially populated row when a bulk write reaches a
+ * strict validation error. Validate generated records before any write so a
+ * code/master contract mismatch fails without corrupting the table.
+ */
+function pwValidateRecordsForWrite_(tab, table, records) {
+  var validations = table.sheet.getRange(2, 1, 1, table.headers.length)
+    .getDataValidations()[0];
+  (records || []).forEach(function (record) {
+    Object.keys(record).forEach(function (header) {
+      var value = pwToSheetValue_(record[header]);
+      if (value === '') return;
+      var column = table.headers.indexOf(header);
+      var validation = column >= 0 ? validations[column] : null;
+      var allowed = pwValidationAllowedValuesFromRule_(validation);
+      if (allowed) {
+        pwAssert_(allowed.indexOf(String(value)) >= 0, 'WORKBOOK_CONTRACT_ERROR',
+          'Generated data does not match the validation for ' + tab + '.' + header, 503);
+      }
+    });
+  });
+}
+
 function pwAppend_(tab, record) {
   var table = pwTable_(tab, Object.keys(record));
+  pwValidateRecordsForWrite_(tab, table, [record]);
   var values = table.headers.map(function (header) {
     return pwToSheetValue_(record[header]);
   });
@@ -94,6 +133,7 @@ function pwAppend_(tab, record) {
 function pwAppendMany_(tab, records) {
   if (!records || records.length === 0) return;
   var table = pwTable_(tab, Object.keys(records[0]));
+  pwValidateRecordsForWrite_(tab, table, records);
   var values = records.map(function (record) {
     return table.headers.map(function (header) { return pwToSheetValue_(record[header]); });
   });
@@ -108,6 +148,7 @@ function pwUpdateRow_(tab, idHeader, id, fields) {
     return pwText_(candidate, idHeader) === String(id);
   })[0];
   if (!row) return false;
+  pwValidateRecordsForWrite_(tab, table, [fields]);
   var rowValues = table.sheet.getRange(row.__rowNumber, 1, 1, table.headers.length).getValues()[0];
   Object.keys(fields).forEach(function (header) {
     rowValues[table.headers.indexOf(header)] = pwToSheetValue_(fields[header]);
