@@ -8,7 +8,7 @@ Status: source, Sheet contract and live Web App are verified on
 | Preserve existing UI | Existing Flutter feature screens and navigation retained | Flutter diff; no replacement app |
 | Remove invalid backend | One Apps Script URL in `config.dart`; obsolete Node backend deleted | Static contract tests |
 | Apps Script REST/JSON | `doGet`, `doPost`, JSON envelope and logical router | `services/apps-script`, API contract |
-| Sheets-only database | Header-driven reads/writes across 23 live tabs | Sheet store and readiness check |
+| Sheets-only database | Header-driven reads/writes across 23 live tabs with validation-aware preflight | Sheet store, readiness and regression tests |
 | Register/login | Parent Master writes; salted SHA-256 password hash; signed token | auth source and tests |
 | Child and Chennai school dropdown | Child Master writes; bootstrap from School Master | profile source and existing Flutter flow |
 | 3–12 age logic only | Age Group Master drives eligibility; no 12–15 path | age resolver and workbook contract |
@@ -26,7 +26,8 @@ Status: source, Sheet contract and live Web App are verified on
 ## Acceptance gate state
 
 - Source and Sheet configuration: implemented across all 23 required tabs.
-- Apps Script static/contract tests: passing locally.
+- Apps Script static/contract tests: 12 passing locally, including strict Sheet
+  enum mappings and partial-write prevention.
 - Live Web App URL: deployed and returning JSON for health, readiness and bootstrap.
 - Functional registration/login/child creation and immediate Sheet writes: verified
   with fictional Sprint 11 test data; passwords are stored only as salted SHA-256 hashes.

@@ -85,6 +85,24 @@ this document records integration responsibilities and does not duplicate its ro
 - Passions: `Child_Passion_ID`, `Child_ID`, `Passion_ID`, `Preference_Rank`,
   `Passion_Status`, `Source`, `Captured_At`, `Assessment_ID`, `Record_Status`.
 
+Strict transaction enums are part of the live Sheet contract:
+
+- `15_Child_Passions.Passion_Status`: `PRIMARY`, `SECONDARY`, `EMERGING`;
+  rank 1 is primary, rank 2 is secondary and ranks 3–5 are emerging.
+- `15_Child_Passions.Source`: `PARENT`, `CHILD`, `HYBRID`.
+- `12_Child_Assessments.Assessment_Status`: `DRAFT`, `IN_PROGRESS`,
+  `COMPLETED`, `CANCELLED`, `EXPIRED`. The API translates these to positive
+  title-case display values without changing the Flutter contract.
+- `12_Child_Assessments.Respondent_Mode`: `PARENT_ONLY`, `HYBRID`.
+- `16_Journey_Tracker.Journey_Status`: `PLANNED`, `ACTIVE`, `PAUSED`,
+  `COMPLETED`, `ABANDONED`. The API translates these for display.
+- `11_Mission_Scheduler.Priority_Source`: `ASSESSMENT`, `PARENT_FOCUS`,
+  `PASSION`, `BALANCE`; additional recommendation evidence belongs in `Notes`.
+
+Apps Script must validate generated dropdown-backed values before calling a Sheet
+write. This prevents a strict-validation failure from leaving a partially populated
+transaction row.
+
 ## Operational headers used in Sprint 3
 
 - Missions: `Mission_ID`, `Skill_ID`, `Age_Group_ID`, `Mission_Name`,

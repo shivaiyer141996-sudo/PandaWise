@@ -1,14 +1,39 @@
 function pwPassions_(childId) {
   var latest = {};
+  var selectedStatuses = pwValidationOptions_(PW_TABS.childPassions, 'Passion_Status');
   pwRows_(PW_TABS.childPassions, ['Child_ID', 'Passion_ID', 'Record_Status'])
     .filter(function (row) { return pwText_(row, 'Child_ID') === childId; })
     .forEach(function (row) { latest[pwText_(row, 'Passion_ID')] = row; });
   return Object.keys(latest).map(function (key) { return latest[key]; }).filter(function (row) {
     return pwText_(row, 'Record_Status') === 'Active' &&
-      (pwText_(row, 'Passion_Status') || 'Selected') === 'Selected';
+      selectedStatuses.indexOf(pwText_(row, 'Passion_Status')) >= 0;
   }).sort(function (left, right) {
     return pwNumber_(pwCell_(left, 'Preference_Rank')) - pwNumber_(pwCell_(right, 'Preference_Rank'));
   }).map(function (row) { return pwText_(row, 'Passion_ID'); });
+}
+
+function pwPassionStatusForRank_(rank) {
+  var allowed = pwValidationOptions_(PW_TABS.childPassions, 'Passion_Status');
+  var required = ['PRIMARY', 'SECONDARY', 'EMERGING'];
+  pwAssert_(required.every(function (status) { return allowed.indexOf(status) >= 0; }),
+    'WORKBOOK_CONTRACT_ERROR', 'Child passion status validation is incomplete', 503);
+  return rank === 1 ? 'PRIMARY' : rank === 2 ? 'SECONDARY' : 'EMERGING';
+}
+
+function pwAssessmentStatusFromSheet_(value) {
+  var key = String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
+  var labels = {
+    DRAFT: 'Draft', IN_PROGRESS: 'In Progress', COMPLETED: 'Completed',
+    CANCELLED: 'Cancelled', EXPIRED: 'Expired'
+  };
+  return labels[key] || String(value || '').trim();
+}
+
+function pwAssessmentRespondentModeForSheet_(value) {
+  var source = String(value || '').trim().toUpperCase();
+  var mapped = source === 'PARENT' ? 'PARENT_ONLY' : source === 'CHILD' ? 'HYBRID' : source;
+  return pwOneOf_(mapped,
+    pwValidationOptions_(PW_TABS.assessments, 'Respondent_Mode'), 'respondent mode');
 }
 
 function pwPassionApplies_(passion, ageGroupId) {
@@ -32,9 +57,10 @@ function pwSelectPassions_(parent, childId, body) {
     var current = pwPassions_(childId);
     var timestamp = pwIsoNow_();
     var rows = ids.map(function (passionId, index) {
+      var rank = index + 1;
       return {
         Child_Passion_ID: pwId_('CPA'), Child_ID: childId, Passion_ID: passionId,
-        Preference_Rank: index + 1, Passion_Status: 'Selected', Source: 'Parent Selection',
+        Preference_Rank: rank, Passion_Status: pwPassionStatusForRank_(rank), Source: 'PARENT',
         Captured_At: timestamp, Assessment_ID: '', Record_Status: 'Active',
         Created_At: timestamp, Updated_At: timestamp
       };
@@ -42,7 +68,7 @@ function pwSelectPassions_(parent, childId, body) {
     current.filter(function (id) { return ids.indexOf(id) < 0; }).forEach(function (passionId) {
       rows.push({
         Child_Passion_ID: pwId_('CPA'), Child_ID: childId, Passion_ID: passionId,
-        Preference_Rank: 0, Passion_Status: 'Removed', Source: 'Parent Selection',
+        Preference_Rank: 0, Passion_Status: 'EMERGING', Source: 'PARENT',
         Captured_At: timestamp, Assessment_ID: '', Record_Status: 'Inactive',
         Created_At: timestamp, Updated_At: timestamp
       });
@@ -65,7 +91,8 @@ function pwAssessmentFromRow_(row) {
     scoreBand: pwText_(row, 'Score_Band') || null, journeyId: pwText_(row, 'Journey_ID') || null,
     questionCount: pwNumber_(pwCell_(row, 'Question_Count')),
     sequence: pwNumber_(pwCell_(row, 'Assessment_Sequence')),
-    status: pwText_(row, 'Assessment_Status'), createdAt: pwText_(row, 'Created_At'),
+    status: pwAssessmentStatusFromSheet_(pwText_(row, 'Assessment_Status')),
+    createdAt: pwText_(row, 'Created_At'),
     updatedAt: pwText_(row, 'Updated_At'),
     calculationVersion: pwText_(row, 'Calculation_Version') || PW_CALCULATION_VERSION
   };
@@ -223,10 +250,11 @@ function pwStartAssessment_(parent, childId) {
     pwAppend_(PW_TABS.assessments, {
       Assessment_ID: assessmentId, Child_ID: childId, Assessment_Version: version,
       Assessment_Depth: depth,
-      Respondent_Mode: pwText_(groupRow, 'Respondent_Mode'), Started_At: timestamp,
+      Respondent_Mode: pwAssessmentRespondentModeForSheet_(
+        pwText_(groupRow, 'Respondent_Mode')), Started_At: timestamp,
       Completed_At: '', Overall_GrowScore: '', Score_Band: '', Journey_ID: '',
       Question_Count: questions.length, Assessment_Sequence: assessments.length + 1,
-      Assessment_Status: 'In Progress', Created_At: timestamp, Updated_At: timestamp,
+      Assessment_Status: 'IN_PROGRESS', Created_At: timestamp, Updated_At: timestamp,
       Calculation_Version: PW_CALCULATION_VERSION
     });
     pwUpdateRow_(PW_TABS.children, 'Child_ID', childId, {
@@ -385,7 +413,7 @@ function pwCompleteAssessment_(parent, assessmentId) {
     }
     pwUpdateRow_(PW_TABS.assessments, 'Assessment_ID', assessmentId, {
       Completed_At: timestamp, Overall_GrowScore: growScore, Score_Band: pwScoreBand_(growScore),
-      Assessment_Status: 'Completed', Updated_At: timestamp,
+      Assessment_Status: 'COMPLETED', Updated_At: timestamp,
       Calculation_Version: PW_CALCULATION_VERSION
     });
     pwUpdateRow_(PW_TABS.children, 'Child_ID', owned.child.id, {
